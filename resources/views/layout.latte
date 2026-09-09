@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{block title}{/block} · {$appName}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="{$base}/assets/css/app.css">
+    <script>
+        (function () {
+            var saved = null;
+            try { saved = localStorage.getItem('rvc-theme'); } catch (e) {}
+            if (saved) { document.documentElement.setAttribute('data-theme', saved); }
+        })();
+    </script>
+</head>
+<body>
+<div class="app">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">RV</div>
+            <div class="brand-name">{$appName}</div>
+        </div>
+        <div class="topbar-spacer"></div>
+        <button type="button" class="btn btn-sm" onclick="rvcToggleTheme()" id="themeButton">โหมดมืด</button>
+        <div class="who">
+            <div class="avatar">{mb_substr($user['full_name'], 0, 2)}</div>
+            <div>
+                {$user['full_name']}
+                <span class="text-muted">· {$user['role'] === 'admin' ? 'ผู้ดูแลระบบ' : ($user['role'] === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน')}</span>
+            </div>
+        </div>
+        <form method="post" action="{$base}/logout">
+            <input type="hidden" name="_token" value="{$csrf}">
+            <button type="submit" class="btn btn-sm">ออกจากระบบ</button>
+        </form>
+    </header>
+
+    <div class="shell">
+        <nav class="sidebar">
+            <a href="{$base}/dashboard" n:class="$page === 'dashboard' ? is-active"><span>⌂</span>หน้าแรก</a>
+            {if $user['role'] === 'admin'}
+                <div class="group-label">สำหรับผู้ดูแลระบบ</div>
+                <a href="{$base}/admin/migrations" n:class="$page === 'migrations' ? is-active"><span>▤</span>จัดการฐานข้อมูล</a>
+            {/if}
+            <div class="spacer"></div>
+            <div class="footnote">{$college}<br>รุ่น {$version}</div>
+        </nav>
+
+        <main class="content">
+            {foreach $flash as $message}
+                <div class="alert alert-{$message['type']}">{$message['message']}</div>
+            {/foreach}
+
+            {include content}
+        </main>
+    </div>
+</div>
+
+<script>
+    function rvcToggleTheme() {
+        var root = document.documentElement;
+        var next = root.getAttribute('data-theme') === 'dark' ? '' : 'dark';
+        if (next) { root.setAttribute('data-theme', next); } else { root.removeAttribute('data-theme'); }
+        try { localStorage.setItem('rvc-theme', next); } catch (e) {}
+        document.getElementById('themeButton').textContent = next ? 'โหมดสว่าง' : 'โหมดมืด';
+    }
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+        document.getElementById('themeButton').textContent = 'โหมดสว่าง';
+    }
+</script>
+</body>
+</html>

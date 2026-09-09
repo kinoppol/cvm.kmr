@@ -1,0 +1,18 @@
+# ส่งทุก request เข้าโฟลเดอร์ public/ เพื่อให้ไฟล์ config และ storage อยู่นอกรากเว็บ
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ public/ [L]
+    RewriteCond %{REQUEST_URI} !^/?public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# กันไว้อีกชั้นเผื่อไม่มี mod_rewrite
+<FilesMatch "^(composer\.(json|lock|phar)|\.gitignore|\.env.*)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
