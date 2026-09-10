@@ -1,0 +1,130 @@
+{layout '../layout.latte'}
+
+{block title}{$course['name']}{/block}
+
+{block content}
+<div class="course-page">
+    <div class="course-header">
+        <div class="course-header-inner">
+            <div class="course-head-top">
+                <div class="course-head-info">
+                    <div class="course-head-code">{$course['code']} · {$course['classroom_name'] ?? 'ยังไม่ระบุกลุ่มเรียน'}</div>
+                    <h1>{$course['name']}</h1>
+                    <div class="course-head-stats">
+                        {$course['student_count']} นักเรียน · {$course['lesson_count']} บทเรียน · แบบทดสอบ {$course['quiz_count']} ชุด
+                    </div>
+                </div>
+                <div class="ai-menu" data-ai-menu>
+                    <button type="button" class="btn btn-ai" data-ai-toggle>
+                        <span>✦</span> ให้ AI ช่วย <span class="caret">▾</span>
+                    </button>
+                    <div class="ai-menu-panel" hidden>
+                        <a href="{$base}/courses/{$course['id']}/quizzes/create">
+                            <div class="t">ออกข้อสอบจากบทเรียน</div>
+                            <div class="d">เลือกบทเรียนแล้วให้ร่างข้อสอบให้</div>
+                        </a>
+                        <a href="{$base}/courses/{$course['id']}/lesson-plan">
+                            <div class="t">ทำแผนการจัดการเรียนรู้</div>
+                            <div class="d">ร่างตามแบบฟอร์ม สอศ.</div>
+                        </a>
+                        <div class="ai-menu-note">ผลลัพธ์ทุกชิ้นจะอยู่ในสถานะรอครูตรวจก่อนเผยแพร่</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                {var $tabs = ['lessons' => 'เนื้อหาบทเรียน', 'quizzes' => 'แบบทดสอบ', 'students' => 'นักเรียน', 'scores' => 'คะแนน']}
+                {foreach $tabs as $key => $label}
+                    <a href="{$base}/courses/{$course['id']}?tab={$key}" n:class="tab, $tab === $key ? is-active">{$label}</a>
+                {/foreach}
+            </div>
+        </div>
+    </div>
+
+    <div class="course-body">
+        {if $tab === 'lessons'}
+            <div class="list">
+                {foreach $lessons as $l}
+                    <div class="list-row">
+                        <div class="list-no">{$l['no']}</div>
+                        <div class="list-main">
+                            <div class="list-title">{$l['title']}</div>
+                            <div class="list-meta">{$l['meta']}</div>
+                        </div>
+                        <span class="tag tag-{$l['tag_kind']}">{$l['tag']}</span>
+                        <a class="btn btn-sm" href="{$base}/courses/{$course['id']}/lessons/{$l['id']}/edit">แก้ไข</a>
+                    </div>
+                {/foreach}
+                {if !$lessons}<div class="empty"><h3>ยังไม่มีบทเรียน</h3><p>กดปุ่มด้านล่างเพื่อเพิ่มบทเรียนแรก</p></div>{/if}
+            </div>
+            <div class="list-actions">
+                <a class="btn" href="{$base}/courses/{$course['id']}/lessons/new">+ เพิ่มบทเรียน</a>
+            </div>
+
+        {elseif $tab === 'quizzes'}
+            <div class="list">
+                {foreach $quizzes as $q}
+                    <div class="list-row">
+                        <div class="list-main">
+                            <div class="list-title">{$q['title']}</div>
+                            <div class="list-meta">{$q['meta']}</div>
+                        </div>
+                        <span class="tag tag-{$q['tag_kind']}">{$q['tag']}</span>
+                        <div class="list-when">{$q['time']}</div>
+                    </div>
+                {/foreach}
+                {if !$quizzes}<div class="empty"><h3>ยังไม่มีแบบทดสอบ</h3><p>ใช้เมนู “ให้ AI ช่วย” เพื่อร่างข้อสอบจากบทเรียน</p></div>{/if}
+            </div>
+
+        {elseif $tab === 'students'}
+            <div class="list">
+                {foreach $students as $s}
+                    <div class="list-row">
+                        <div class="mini-avatar">{mb_substr($s['full_name'], 0, 2)}</div>
+                        <div class="mono list-id">{$s['username']}</div>
+                        <div class="list-main"><div class="list-title">{$s['full_name']}</div></div>
+                    </div>
+                {/foreach}
+                {if !$students}<div class="empty"><h3>ยังไม่มีนักเรียนในรายวิชานี้</h3></div>{/if}
+            </div>
+
+        {else}
+            {if $scoreRows}
+                <div class="table-scroll">
+                    <table class="data score-table">
+                        <thead>
+                        <tr>
+                            <th>นักเรียน</th>
+                            {foreach $scoreQuizzes as $q}<th class="num">{$q['title']|truncate:24}</th>{/foreach}
+                            <th class="num">รวม</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {foreach $scoreRows as $r}
+                            <tr>
+                                <td>{$r['name']}</td>
+                                {foreach $r['cells'] as $c}<td class="num mono">{$c}</td>{/foreach}
+                                <td class="num mono" style="color:var(--brand);font-weight:500">{$r['total']}</td>
+                            </tr>
+                        {/foreach}
+                        </tbody>
+                    </table>
+                </div>
+            {else}
+                <div class="empty"><h3>ยังไม่มีคะแนน</h3><p>คะแนนจะปรากฏเมื่อมีแบบทดสอบที่เผยแพร่และนักเรียนทำแล้ว</p></div>
+            {/if}
+        {/if}
+    </div>
+</div>
+
+<script>
+    (function () {
+        var menu = document.querySelector('[data-ai-menu]');
+        if (!menu) return;
+        var toggle = menu.querySelector('[data-ai-toggle]');
+        var panel = menu.querySelector('.ai-menu-panel');
+        toggle.addEventListener('click', function (e) { e.stopPropagation(); panel.hidden = !panel.hidden; });
+        document.addEventListener('click', function () { panel.hidden = true; });
+    })();
+</script>
+{/block}

@@ -1,0 +1,32 @@
+{layout '../layout.latte'}
+
+{block title}รายวิชาของฉัน{/block}
+
+{block content}
+<div class="dash">
+    <div class="dash-greeting">รายวิชาของฉัน</div>
+    <div class="dash-sub">{$term ?? ''} · {count($courses)} รายวิชา</div>
+
+    {if $courses}
+        <div class="course-grid">
+            {foreach $courses as $c}
+                <a class="course-card" href="{$base}/courses/{$c['id']}">
+                    <div class="course-card-head" style="background: {$c['color']}">
+                        <div class="code">{$c['code']}</div>
+                        <div class="name">{$c['name']}</div>
+                    </div>
+                    <div class="course-card-body">
+                        <div class="meta">{$c['classroom_name'] ?? 'ยังไม่ระบุกลุ่มเรียน'} · {$c['student_count']} คน</div>
+                        <div class="note">{$c['lesson_count']} บทเรียน · แบบทดสอบ {$c['quiz_count']} ชุด</div>
+                    </div>
+                </a>
+            {/foreach}
+        </div>
+    {else}
+        <div class="empty" style="margin-top:26px">
+            <h3>ยังไม่มีรายวิชาที่สอนในภาคเรียนนี้</h3>
+            <p>ติดต่อผู้ดูแลระบบเพื่อเพิ่มรายวิชาให้</p>
+        </div>
+    {/if}
+</div>
+{/block}

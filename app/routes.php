@@ -7,7 +7,9 @@ use App\Auth\RoleMiddleware;
 use App\Controllers\Admin\DemoController;
 use App\Controllers\Admin\MigrationController;
 use App\Controllers\AuthController;
+use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
+use App\Controllers\LessonController;
 use App\Support\Url;
 use App\Support\ViewContext;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -27,6 +29,14 @@ return static function (App $app): void {
 
     $app->group('', function (RouteCollectorProxy $group): void {
         $group->get('/dashboard', [DashboardController::class, 'index'])->setName('dashboard');
+
+        $group->group('/courses', function (RouteCollectorProxy $t): void {
+            $t->get('', [CourseController::class, 'index'])->setName('courses');
+            $t->get('/{id:[0-9]+}', [CourseController::class, 'show'])->setName('course.show');
+            $t->get('/{courseId:[0-9]+}/lessons/new', [LessonController::class, 'edit']);
+            $t->get('/{courseId:[0-9]+}/lessons/{id:[0-9]+}/edit', [LessonController::class, 'edit']);
+            $t->post('/{courseId:[0-9]+}/lessons[/{id:[0-9]+}]', [LessonController::class, 'save']);
+        })->add(new RoleMiddleware(['teacher']));
 
         $group->group('/admin', function (RouteCollectorProxy $admin): void {
             $admin->get('/migrations', [MigrationController::class, 'index'])->setName('admin.migrations');
