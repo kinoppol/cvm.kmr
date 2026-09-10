@@ -93,6 +93,28 @@ final class ReviewRepository
         );
     }
 
+    public function reject(int $generationId, int $reviewerId): void
+    {
+        $this->db->run(
+            'UPDATE {ai_generations} SET review_status = \'rejected\', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?',
+            [$reviewerId, $generationId]
+        );
+    }
+
+    public function linkTarget(int $generationId, string $targetType, int $targetId): void
+    {
+        $this->db->update('ai_generations', ['target_type' => $targetType, 'target_id' => $targetId], ['id' => $generationId]);
+    }
+
+    /** @return array<string,mixed>|null รายการรอตรวจของเนื้อหาที่ผูกกับ target นี้ */
+    public function findByTarget(int $userId, string $targetType, int $targetId): ?array
+    {
+        return $this->db->first(
+            'SELECT * FROM {ai_generations} WHERE user_id = ? AND target_type = ? AND target_id = ? ORDER BY id DESC LIMIT 1',
+            [$userId, $targetType, $targetId]
+        );
+    }
+
     /** @return array<string,mixed>|null */
     public function find(int $generationId): ?array
     {

@@ -10,6 +10,7 @@ use App\Controllers\AuthController;
 use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
 use App\Controllers\LessonController;
+use App\Controllers\QuizWizardController;
 use App\Support\Url;
 use App\Support\ViewContext;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -36,6 +37,14 @@ return static function (App $app): void {
             $t->get('/{courseId:[0-9]+}/lessons/new', [LessonController::class, 'edit']);
             $t->get('/{courseId:[0-9]+}/lessons/{id:[0-9]+}/edit', [LessonController::class, 'edit']);
             $t->post('/{courseId:[0-9]+}/lessons[/{id:[0-9]+}]', [LessonController::class, 'save']);
+
+            $t->get('/{courseId:[0-9]+}/quizzes/create', [QuizWizardController::class, 'create']);
+            $t->get('/{courseId:[0-9]+}/quizzes/workspace', [QuizWizardController::class, 'workspace']);
+            $t->get('/{courseId:[0-9]+}/quizzes/stream', [QuizWizardController::class, 'stream']);
+            $t->get('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}/review', [QuizWizardController::class, 'review']);
+            $t->post('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}', [QuizWizardController::class, 'save']);
+            $t->post('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}/questions/{qid:[0-9]+}/regenerate', [QuizWizardController::class, 'regenerateOne']);
+            $t->post('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}/questions/{qid:[0-9]+}/delete', [QuizWizardController::class, 'deleteQuestion']);
         })->add(new RoleMiddleware(['teacher']));
 
         $group->group('/admin', function (RouteCollectorProxy $admin): void {
