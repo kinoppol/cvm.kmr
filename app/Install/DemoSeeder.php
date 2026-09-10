@@ -347,21 +347,68 @@ final class DemoSeeder
                 'finished_at' => date('Y-m-d H:i:s', strtotime($when . ' +30 seconds')),
             ]);
 
+            // สร้างแบบทดสอบฉบับร่างจริง เพื่อให้กด "ตรวจ" เปิดหน้าตรวจได้ทันที
+            $targetId = null;
+            if ($type === 'quiz') {
+                $targetId = $this->seedDraftQuiz($course, $teacherId, $title);
+            }
+
             $this->db->run(
                 'INSERT INTO {ai_generations} (job_id, user_id, target_type, target_id, payload, review_status, created_at)
-                 VALUES (?, ?, ?, NULL, ?, \'pending\', ?)',
+                 VALUES (?, ?, ?, ?, ?, \'pending\', ?)',
                 [
                     $jobId,
                     $teacherId,
                     $type,
+                    $targetId,
                     json_encode([
                         'title' => $title,
                         'summary' => $summary,
                         'ai_mode' => $source === 'byok' ? 'โหมดเร็ว' : null,
+                        'params' => ['lessons' => [], 'lessonTitles' => ['บทที่ 3 เซนเซอร์และอุปกรณ์ตรวจจับ'], 'count' => 8, 'types' => ['ปรนัย'], 'level' => 'กลาง'],
                     ], JSON_UNESCAPED_UNICODE),
                     date('Y-m-d H:i:s', strtotime($when)),
                 ]
             );
         }
+    }
+
+    /** สร้างแบบทดสอบฉบับร่างพร้อมข้อสอบตัวอย่างจากคลังข้อสอบ */
+    private function seedDraftQuiz(int $courseId, int $teacherId, string $title): int
+    {
+        $quizId = $this->db->insert('quizzes', [
+            'course_id' => $courseId,
+            'title' => $title,
+            'attempts_allowed' => 1,
+            'source' => 'ai',
+            'review_status' => 'draft',
+            'created_by' => $teacherId,
+        ]);
+
+        $pool = \App\AI\QuestionBank::pick('20127-2002', ['เซนเซอร์และอุปกรณ์ตรวจจับ', 'ระบบนิวแมติกส์เบื้องต้น']);
+        $keys = ['ก', 'ข', 'ค', 'ง'];
+
+        foreach (array_slice($pool, 0, 8) as $order => $q) {
+            $qid = $this->db->insert('quiz_questions', [
+                'quiz_id' => $quizId,
+                'type' => $q['type'],
+                'question' => $q['question'],
+                'explanation' => $q['explanation'],
+                'score' => $q['type'] === 'short_answer' ? 2.0 : 1.0,
+                'sort_order' => $order,
+                'source' => 'ai',
+            ]);
+            foreach ($q['choices'] as $ci => $text) {
+                $this->db->insert('quiz_choices', [
+                    'question_id' => $qid,
+                    'label' => $keys[$ci] ?? '',
+                    'content' => $text,
+                    'is_correct' => $ci === $q['answer'] ? 1 : 0,
+                    'sort_order' => $ci,
+                ]);
+            }
+        }
+
+        return $quizId;
     }
 }

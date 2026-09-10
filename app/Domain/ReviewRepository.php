@@ -63,7 +63,9 @@ final class ReviewRepository
                 'id' => (int) $row['id'],
                 'target_type' => $row['target_type'],
                 'target_id' => $row['target_id'] !== null ? (int) $row['target_id'] : null,
+                'course_id' => $row['course_id'] !== null ? (int) $row['course_id'] : null,
                 'title' => $payload['title'] ?? (self::TARGET_LABEL[$row['target_type']] ?? 'เนื้อหา'),
+                'summary' => $payload['summary'] ?? '',
                 'created_at' => $row['created_at'],
                 'source' => $this->sourceLabel($row['source'], $payload['ai_mode'] ?? null),
             ];

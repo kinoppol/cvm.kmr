@@ -11,6 +11,7 @@ use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
 use App\Controllers\LessonController;
 use App\Controllers\QuizWizardController;
+use App\Controllers\ReviewController;
 use App\Support\Url;
 use App\Support\ViewContext;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -46,6 +47,9 @@ return static function (App $app): void {
             $t->post('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}/questions/{qid:[0-9]+}/regenerate', [QuizWizardController::class, 'regenerateOne']);
             $t->post('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}/questions/{qid:[0-9]+}/delete', [QuizWizardController::class, 'deleteQuestion']);
         })->add(new RoleMiddleware(['teacher']));
+
+        $group->get('/review', [ReviewController::class, 'index'])
+            ->setName('review')->add(new RoleMiddleware(['teacher']));
 
         $group->group('/admin', function (RouteCollectorProxy $admin): void {
             $admin->get('/migrations', [MigrationController::class, 'index'])->setName('admin.migrations');
