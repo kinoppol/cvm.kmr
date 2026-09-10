@@ -14,7 +14,7 @@
         <div class="course-grid">
             {foreach $courses as $c}
                 <a class="course-card" href="{$base}/courses/{$c['id']}">
-                    <div class="course-card-head" style="background: {$c['color']}">
+                    <div class="course-card-head" style="background:#{$c['color']}">
                         <div class="code">{$c['code']}</div>
                         <div class="name">{$c['name']}</div>
                     </div>

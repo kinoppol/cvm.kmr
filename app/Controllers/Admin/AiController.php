@@ -76,7 +76,7 @@ final class AiController
         return $this->redirect($response);
     }
 
-    /** @return list<array{label:string,value:string,pct:string,color:string}> */
+    /** @return list<array{label:string,value:string,pct:int,tone:string}> */
     private function gpuStats(?array $endpoint): array
     {
         $online = $endpoint && $endpoint['status'] === 'online';
@@ -85,10 +85,10 @@ final class AiController
         $load = $online ? 30 + (int) (abs(sin((float) date('U') / 900)) * 45) : 0;
 
         return [
-            ['label' => 'หน่วยความจำของการ์ดที่ใช้อยู่', 'value' => $online ? '17.2 / 24 GB' : '— / 24 GB', 'pct' => $online ? '72%' : '0%', 'color' => 'var(--brand)'],
-            ['label' => 'อุณหภูมิ', 'value' => $online ? '68 °C' : '—', 'pct' => $online ? '55%' : '0%', 'color' => 'var(--ok)'],
-            ['label' => 'การใช้งานตัวประมวลผล', 'value' => $online ? $load . ' %' : '—', 'pct' => $load . '%', 'color' => 'var(--brand)'],
-            ['label' => 'คำขอวันนี้', 'value' => $today . ' ครั้ง', 'pct' => min(100, $today * 3) . '%', 'color' => 'var(--brand)'],
+            ['label' => 'หน่วยความจำของการ์ดที่ใช้อยู่', 'value' => $online ? '17.2 / 24 GB' : '— / 24 GB', 'pct' => $online ? 72 : 0, 'tone' => 'brand'],
+            ['label' => 'อุณหภูมิ', 'value' => $online ? '68 °C' : '—', 'pct' => $online ? 55 : 0, 'tone' => 'ok'],
+            ['label' => 'การใช้งานตัวประมวลผล', 'value' => $online ? $load . ' %' : '—', 'pct' => $load, 'tone' => 'brand'],
+            ['label' => 'คำขอวันนี้', 'value' => $today . ' ครั้ง', 'pct' => min(100, $today * 3), 'tone' => 'brand'],
         ];
     }
 

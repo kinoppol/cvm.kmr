@@ -1,0 +1,153 @@
+/* หน้าแรกสาธารณะ — สไตล์ตามแม่แบบ Education (Colorlib) ปรับเป็น RVC Learn
+   ฟอนต์และโทนสีอ้างอิงจาก resources/design/course-template/assets/css/style.css */
+@import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;600;700&family=Mulish:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap");
+
+:root {
+    --lp-theme: #C86FFF;
+    --lp-theme-dark: #b24ff0;
+    --lp-heading: #4255A4;
+    --lp-body: #6E7697;
+    --lp-accent: #FF9F67;
+    --lp-section: #f7f7fd;
+    --lp-line: #ecebf6;
+    --lp-shadow: 0 6px 24px rgba(2, 25, 65, .08);
+}
+
+.lp * { box-sizing: border-box; }
+.lp {
+    font-family: "Mulish", "Sarabun", system-ui, sans-serif;
+    color: var(--lp-body); font-size: 16px; line-height: 1.75;
+    background: #fff; -webkit-font-smoothing: antialiased;
+}
+.lp h1, .lp h2, .lp h3, .lp h4 {
+    font-family: "Josefin Sans", "IBM Plex Sans Thai", sans-serif;
+    color: var(--lp-heading); margin: 0; font-weight: 600; line-height: 1.25;
+}
+.lp a { color: inherit; text-decoration: none; }
+.lp-wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* header */
+.lp-header {
+    position: sticky; top: 0; z-index: 30; background: #fff;
+    border-bottom: 1px solid var(--lp-line);
+}
+.lp-header .lp-wrap { display: flex; align-items: center; gap: 20px; height: 74px; }
+.lp-logo { display: flex; align-items: center; gap: 10px; }
+.lp-logo-mark {
+    width: 34px; height: 34px; border-radius: 9px; background: var(--lp-theme);
+    color: #fff; display: grid; place-items: center;
+    font: 700 13px/1 "IBM Plex Mono", monospace; letter-spacing: .5px;
+}
+.lp-logo-name { font: 600 19px/1 "Josefin Sans", sans-serif; color: var(--lp-heading); }
+.lp-nav { margin-left: auto; display: flex; align-items: center; gap: 30px; }
+.lp-nav a { font: 500 15px/1 "Josefin Sans", sans-serif; color: var(--lp-heading); }
+.lp-nav a:hover { color: var(--lp-theme); }
+.lp-btn {
+    display: inline-block; padding: 13px 30px; border-radius: 4px;
+    font: 600 13px/1 "Josefin Sans", sans-serif; letter-spacing: 2px; text-transform: uppercase;
+    border: 1px solid var(--lp-theme); color: var(--lp-theme); background: #fff; cursor: pointer;
+    transition: .25s;
+}
+.lp-btn:hover { background: var(--lp-theme); color: #fff; }
+.lp-btn-solid { background: var(--lp-theme); color: #fff; }
+.lp-btn-solid:hover { background: var(--lp-theme-dark); color: #fff; }
+.lp-btn-sm { padding: 10px 22px; }
+
+/* hero */
+.lp-hero {
+    background:
+        radial-gradient(1200px 400px at 15% -20%, rgba(200, 111, 255, .22), transparent 60%),
+        linear-gradient(120deg, #f3ecff 0%, #eef1fb 55%, #f7f7fd 100%);
+    border-bottom: 1px solid var(--lp-line);
+}
+.lp-hero .lp-wrap { padding-top: 70px; padding-bottom: 70px; }
+.lp-eyebrow {
+    font: 500 13px/1 "IBM Plex Mono", monospace; letter-spacing: 1px;
+    color: var(--lp-theme); text-transform: uppercase;
+}
+.lp-hero h1 { font-size: 46px; margin: 16px 0 0; font-weight: 700; }
+.lp-crumb { margin-top: 18px; font: 500 14px/1 "Josefin Sans", sans-serif; color: var(--lp-body); }
+.lp-crumb a { color: var(--lp-theme); }
+.lp-hero-lead { margin-top: 14px; max-width: 640px; }
+
+/* course sections */
+.lp-body-area { background: var(--lp-section); padding: 72px 0; }
+.lp-section-title { text-align: center; margin-bottom: 46px; }
+.lp-section-title h2 { font-size: 34px; }
+.lp-section-title p { margin: 10px 0 0; }
+.lp-group { margin-top: 56px; }
+.lp-group:first-child { margin-top: 0; }
+.lp-group-head {
+    display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px;
+    padding-bottom: 12px; border-bottom: 2px solid var(--lp-line);
+}
+.lp-group-head h3 { font-size: 22px; }
+.lp-group-head span { font: 500 13px/1 "IBM Plex Mono", monospace; color: var(--lp-body); }
+
+.lp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+.lp-card {
+    background: #fff; border-radius: 10px; box-shadow: var(--lp-shadow);
+    overflow: hidden; transition: .4s; display: flex; flex-direction: column;
+}
+.lp-card:hover { box-shadow: 0 12px 34px rgba(2, 25, 65, .12); transform: translateY(-3px); }
+.lp-card-img {
+    height: 132px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 16px 18px; color: #fff;
+}
+.lp-card-img .lp-code { font: 500 13px/1 "IBM Plex Mono", monospace; opacity: .85; }
+.lp-card-img .lp-credit {
+    font: 600 12px/1 "Josefin Sans", sans-serif; background: rgba(255, 255, 255, .22);
+    padding: 5px 9px; border-radius: 20px; backdrop-filter: blur(2px);
+}
+.lp-card-body { padding: 26px 22px 22px; display: flex; flex-direction: column; flex: 1; }
+.lp-card-cat {
+    font: 600 12px/1 "IBM Plex Mono", monospace; letter-spacing: .5px;
+    color: var(--lp-theme); text-transform: uppercase;
+}
+.lp-card-body h4 { font-size: 19px; font-weight: 500; margin: 8px 0 0; }
+.lp-card-desc {
+    margin: 12px 0 0; font-size: 14px; line-height: 1.8; color: var(--lp-body);
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lp-card-foot {
+    margin-top: auto; padding-top: 18px; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+}
+.lp-card-meta { font-size: 13px; color: var(--lp-body); }
+.lp-card-foot .lp-more {
+    font: 600 12px/1 "Josefin Sans", sans-serif; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--lp-heading); border: 1px solid var(--lp-line); border-radius: 4px;
+    padding: 9px 16px; transition: .3s;
+}
+.lp-card:hover .lp-more { background: var(--lp-accent); border-color: var(--lp-accent); color: #fff; }
+
+.lp-empty {
+    max-width: 540px; margin: 0 auto; text-align: center; background: #fff;
+    border-radius: 12px; box-shadow: var(--lp-shadow); padding: 56px 40px;
+}
+.lp-empty h3 { font-size: 22px; }
+.lp-empty p { margin: 12px 0 0; }
+
+/* footer */
+.lp-footer { background: #16161a; color: #b9b9c6; padding: 56px 0 22px; }
+.lp-footer .lp-wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.lp-footer h4 { color: #fff; font-size: 18px; margin-bottom: 6px; }
+.lp-footer-col { flex: 1; min-width: 200px; }
+.lp-footer a:hover { color: var(--lp-theme); }
+.lp-footer-bottom {
+    max-width: 1200px; margin: 34px auto 0; padding: 20px 24px 0;
+    border-top: 1px solid rgba(255, 255, 255, .1); font-size: 13px;
+}
+.lp-footer-bottom a { color: var(--lp-theme); }
+
+@media (max-width: 960px) {
+    .lp-grid { grid-template-columns: repeat(2, 1fr); }
+    .lp-hero h1 { font-size: 34px; }
+    .lp-nav { gap: 18px; }
+}
+@media (max-width: 620px) {
+    .lp-grid { grid-template-columns: 1fr; }
+    .lp-nav a:not(.lp-btn) { display: none; }
+    .lp-header .lp-wrap { height: 64px; }
+    .lp-body-area { padding: 44px 0; }
+}

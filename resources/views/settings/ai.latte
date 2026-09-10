@@ -168,11 +168,13 @@
         document.getElementById('baseUrlField').hidden = prov !== 'openai_compatible';
         document.getElementById('wizTestResult').innerHTML = '';
     }
-    function open() { modal.hidden = false; show(1); }
-    function close() { modal.hidden = true; }
+    function open() { modal.hidden = false; document.body.style.overflow = 'hidden'; show(1); }
+    function close() { modal.hidden = true; document.body.style.overflow = ''; }
 
     root.querySelectorAll('[data-open-wizard]').forEach(function (b) { b.addEventListener('click', open); });
     modal.querySelector('[data-close-wizard]').addEventListener('click', close);
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) close(); });
 
     modal.querySelectorAll('.prov-row').forEach(function (row) {
         row.addEventListener('click', function () {

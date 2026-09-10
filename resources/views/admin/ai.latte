@@ -19,7 +19,7 @@
                     <div>
                         <div class="hint">{$g['label']}</div>
                         <div class="mono gpu-val">{$g['value']}</div>
-                        <div class="bar" style="margin-top:8px"><span style="width: {$g['pct']}; background: {$g['color']}"></span></div>
+                        <div class="bar" style="margin-top:8px"><span class="gpu-bar-{$g['tone']}" style="width:{$g['pct']}%"></span></div>
                     </div>
                 {/foreach}
             </div>

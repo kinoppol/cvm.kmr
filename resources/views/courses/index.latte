@@ -8,10 +8,30 @@
     <div class="dash-sub">{$term ?? ''} · {count($courses)} รายวิชา</div>
 
     {if $courses}
+        <form method="post" action="{$base}/courses/landing-visibility" class="landing-toggle">
+            <input type="hidden" name="_token" value="{$csrf}">
+            <input type="hidden" name="visible" value="{$landingVisible ? '0' : '1'}">
+            <div class="landing-toggle-text">
+                <div class="landing-toggle-title">แสดงรายวิชาของฉันในหน้าแรกสาธารณะ</div>
+                <div class="landing-toggle-sub">
+                    {if $landingVisible}
+                        ผู้ที่ยังไม่เข้าสู่ระบบเห็นรหัสวิชา ชื่อวิชา และคำอธิบายของทุกวิชาที่คุณสอน
+                    {else}
+                        ค่าเริ่มต้นคือไม่แสดง — เปิดเมื่อต้องการประชาสัมพันธ์รายวิชาให้บุคคลภายนอก
+                    {/if}
+                </div>
+            </div>
+            <button type="submit" n:class="switch, $landingVisible ? is-on" aria-label="สลับการแสดงในหน้าแรก">
+                <span class="switch-dot"></span>
+            </button>
+        </form>
+    {/if}
+
+    {if $courses}
         <div class="course-grid">
             {foreach $courses as $c}
                 <a class="course-card" href="{$base}/courses/{$c['id']}">
-                    <div class="course-card-head" style="background: {$c['color']}">
+                    <div class="course-card-head" style="background:#{$c['color']}">
                         <div class="code">{$c['code']}</div>
                         <div class="name">{$c['name']}</div>
                     </div>

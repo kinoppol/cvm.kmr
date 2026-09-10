@@ -8,8 +8,11 @@ use App\Domain\CourseRepository;
 use App\Domain\EnrollmentRepository;
 use App\Domain\LessonRepository;
 use App\Domain\QuizRepository;
+use App\Support\Csrf;
 use App\Support\Db;
+use App\Support\Flash;
 use App\Support\Thai;
+use App\Support\Url;
 use App\Support\View;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -38,7 +41,30 @@ final class CourseController
         return $this->view->render($response, 'courses/index', [
             'page' => 'courses',
             'courses' => $courses,
+            'landingVisible' => $this->courses->landingEnabledForTeacher((int) $user['id']),
         ]);
+    }
+
+    /** ครูเปิด/ปิดการแสดงรายวิชาของตนเองในหน้าแรกสาธารณะ */
+    public function landingVisibility(Request $request, Response $response): Response
+    {
+        $user = $request->getAttribute('user');
+        $data = (array) $request->getParsedBody();
+
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ กรุณาลองใหม่อีกครั้ง');
+
+            return $response->withHeader('Location', Url::to('/courses'))->withStatus(302);
+        }
+
+        $visible = ($data['visible'] ?? '') === '1';
+        $this->courses->setLandingForTeacher((int) $user['id'], $visible);
+
+        Flash::success($visible
+            ? 'เปิดการแสดงรายวิชาของคุณในหน้าแรกสาธารณะแล้ว'
+            : 'ปิดการแสดงรายวิชาของคุณในหน้าแรกสาธารณะแล้ว');
+
+        return $response->withHeader('Location', Url::to('/courses'))->withStatus(302);
     }
 
     public function show(Request $request, Response $response, array $args): Response

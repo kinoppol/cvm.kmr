@@ -66,6 +66,15 @@ Prefix awareness is pervasive: `Auth`, `Migrator`, `Installer`, controllers all 
 ### SSE generation flow
 Quiz/plan generation streams over `text/event-stream` (`QuizWizardController::stream`, `LessonPlanController::stream`): `ignore_user_abort(true)` + `set_time_limit(0)` so the job finishes and persists even if the browser closes; events are `meta` / `question`|`section` / `done` / `error`. The result is always saved server-side as a draft + a pending `ai_generations` row regardless of the client.
 
+### Public landing page
+`/` serves `LandingController` — a guest-facing course showcase (`resources/views/landing.latte`, its own `public/assets/css/landing.css`, styled after the Colorlib "Education" template kept in `resources/design/course-template/`, gitignored). Logged-in users are redirected to `/dashboard`. A teacher opts their courses in via the switch on `/courses` (`POST /courses/landing-visibility` → `courses.show_on_landing`, default 0 for all).
+
+### Latte gotchas
+- Interpolating a value that contains `#`, `(`, or `)` **inside** a `style="..."` attribute gets CSS-escaped to `\#` / `\(` (invalid CSS). Put the literal char in the template and interpolate only the safe part: `style="background:#{$c['color']}"` with `$c['color']` = `0E6B60` (no `#`), or use a CSS class (`class="gpu-bar-{$tone}"`). `var(--x)` written literally in the template is fine.
+- `class="..."` and `n:class="..."` cannot both be on one element — merge into `n:class="base, cond ? extra"`.
+- `n:class` does not do `{}` interpolation; use `class="prefix-{$x}"` or `n:class="'prefix-' . $x"`.
+- Anything toggled with `el.hidden` needs the global `[hidden]{display:none!important}` rule in `app.css` to beat class `display` (e.g. `.modal-backdrop{display:grid}`).
+
 ### Demo data
 `App\Install\DemoSeeder` (`/admin/demo`) `TRUNCATE`s the LMS/assessment/AI tables (so demo IDs stay stable) and reseeds departments, 6 teachers, 28 students, 4 courses, lessons, a published quiz with 22 graded attempts, pending review items, AI endpoint, quotas, and 7 days of usage logs.
 
