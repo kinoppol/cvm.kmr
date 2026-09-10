@@ -1,0 +1,40 @@
+{layout '../layout.latte'}
+
+{block title}ผู้ใช้งาน{/block}
+
+{block content}
+<div class="page-head">
+    <div>
+        <h1>ผู้ใช้งานระบบ</h1>
+        <div class="sub">ครู {$counts['teacher'] ?? 0} · นักเรียน {$counts['student'] ?? 0} · ผู้ดูแล {$counts['admin'] ?? 0}</div>
+    </div>
+    <div class="actions">
+        {var $tabs = ['' => 'ทั้งหมด', 'teacher' => 'ครู', 'student' => 'นักเรียน', 'admin' => 'ผู้ดูแล']}
+        {foreach $tabs as $key => $label}
+            <a href="{$base}/admin/users{if $key}?role={$key}{/if}" n:class="btn, btn-sm, $filter === $key ? btn-primary">{$label}</a>
+        {/foreach}
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-scroll">
+        <table class="data">
+            <thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ-สกุล</th><th>บทบาท</th><th>สถานะ</th><th>เข้าใช้ล่าสุด</th></tr></thead>
+            <tbody>
+            {foreach $users as $u}
+                <tr>
+                    <td class="mono">{$u['username']}</td>
+                    <td>{$u['full_name']}</td>
+                    <td>{$u['role'] === 'admin' ? 'ผู้ดูแลระบบ' : ($u['role'] === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน')}</td>
+                    <td>
+                        {if $u['status'] === 'active'}<span class="chip chip-ok">ใช้งาน</span>
+                        {else}<span class="chip chip-err">ระงับ</span>{/if}
+                    </td>
+                    <td class="mono" style="font-size:12.5px">{$u['last_login_text']}</td>
+                </tr>
+            {/foreach}
+            </tbody>
+        </table>
+    </div>
+</div>
+{/block}

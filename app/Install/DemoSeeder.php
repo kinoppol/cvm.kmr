@@ -164,7 +164,7 @@ final class DemoSeeder
         $limit = $this->settings->int('ai_monthly_quota', 60);
         $used = [
             'thanaphon' => 18, 'sunisa' => 27, 'weerachai' => 31,
-            'patharee' => 59, 'anucha' => 12, 'kamonchanok' => 60,
+            'patcharee' => 59, 'anucha' => 12, 'kamonchanok' => 60,
         ];
         foreach ($teacherId as $username => $id) {
             $this->db->insert('ai_quotas', [
@@ -180,6 +180,10 @@ final class DemoSeeder
         // ---- เนื้อหาตัวอย่างที่รอตรวจ ----
         $this->seedPendingReviews($teacherId['thanaphon'], $courseId, $endpointId);
         $log[] = 'เพิ่มเนื้อหาตัวอย่างที่รอตรวจ 3 รายการ';
+
+        // ---- บันทึกการใช้งาน AI ย้อนหลัง 7 วัน (ให้แดชบอร์ดผู้ดูแลมีข้อมูล) ----
+        $this->seedUsageLogs($teacherId, $used);
+        $log[] = 'เพิ่มบันทึกการใช้งานผู้ช่วย AI ย้อนหลัง';
 
         $this->settings->set('demo_seeded', '1', 'boolean', 'general');
         $this->settings->set('demo_seeded_at', date('Y-m-d H:i:s'), 'string', 'general');
@@ -381,6 +385,39 @@ final class DemoSeeder
                 ]
             );
         }
+    }
+
+    /**
+     * กระจายบันทึกการใช้งานผู้ช่วย AI ย้อนหลัง 7 วัน ให้สอดคล้องกับ used_count ของแต่ละครู
+     *
+     * @param array<string,int> $teacherId
+     * @param array<string,int> $used
+     */
+    private function seedUsageLogs(array $teacherId, array $used): void
+    {
+        $byokUsers = ['sunisa' => 14, 'anucha' => 21, 'kamonchanok' => 0];
+
+        foreach ($teacherId as $username => $id) {
+            $collegeCount = $used[$username] ?? 0;
+            $ownCount = $byokUsers[$username] ?? 0;
+
+            for ($i = 0; $i < $collegeCount; $i++) {
+                $this->insertUsageLog($id, 'college', 'typhoon2-8b-instruct', random_int(0, 6));
+            }
+            for ($i = 0; $i < $ownCount; $i++) {
+                $this->insertUsageLog($id, 'byok', 'gemini-1.5-flash', random_int(0, 6));
+            }
+        }
+    }
+
+    private function insertUsageLog(int $userId, string $source, string $model, int $daysAgo): void
+    {
+        $when = date('Y-m-d H:i:s', strtotime("-$daysAgo days " . random_int(8, 17) . ':' . random_int(0, 59)));
+        $this->db->run(
+            'INSERT INTO {ai_usage_logs} (user_id, source, model, prompt_units, completion_units, succeeded, created_at)
+             VALUES (?, ?, ?, ?, ?, 1, ?)',
+            [$userId, $source, $model, random_int(400, 1800), random_int(300, 1200), $when]
+        );
     }
 
     /** แบบทดสอบที่เผยแพร่แล้ว พร้อมให้บางส่วนของนักเรียนทำและตรวจคะแนนไว้ */

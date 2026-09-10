@@ -1,0 +1,127 @@
+{layout '../layout.latte'}
+
+{block title}เครื่อง AI และโควตา{/block}
+
+{block content}
+<div class="wizard-page" style="max-width:1180px">
+    <h1>เครื่อง AI และโควตา</h1>
+    <div class="sub">สถานะเครื่องในห้องเซิร์ฟเวอร์ · ครูนำร่อง {$teacherCount} คน · {$term ?? ''}</div>
+
+    <div class="admin-grid">
+        <div class="card">
+            <div class="admin-gpu-head">
+                <span n:class="dot-status, $endpoint && $endpoint['status'] === 'online' ? is-online"></span>
+                <strong>เครื่องประมวลผล GPU · {$endpoint && $endpoint['status'] === 'online' ? 'ออนไลน์' : 'ออฟไลน์'}</strong>
+                {if $endpoint}<span class="grow"></span><span class="mono hint">{$endpoint['notes']}</span>{/if}
+            </div>
+            <div class="gpu-stats">
+                {foreach $gpu as $g}
+                    <div>
+                        <div class="hint">{$g['label']}</div>
+                        <div class="mono gpu-val">{$g['value']}</div>
+                        <div class="bar" style="margin-top:8px"><span style="width: {$g['pct']}; background: {$g['color']}"></span></div>
+                    </div>
+                {/foreach}
+            </div>
+            {if $models}
+                <div class="hr"></div>
+                <div class="step-label">โมเดลที่โหลดอยู่</div>
+                <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+                    {foreach $models as $m}
+                        <div class="model-row">
+                            <span class="mono grow">{$m['name']}</span>
+                            <span class="tag">{$m['role']}</span>
+                            <span class="mono hint">{$m['vram']}</span>
+                        </div>
+                    {/foreach}
+                </div>
+            {/if}
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:18px">
+            <div class="card">
+                <div class="step-label">คิวงานปัจจุบัน</div>
+                <div class="queue-count">
+                    <span class="mono">{$queueLength}</span>
+                    <span class="hint">งานรออยู่</span>
+                </div>
+                {if $queue}
+                    <div style="margin-top:12px;border-top:1px solid var(--line2);padding-top:12px;display:flex;flex-direction:column;gap:8px">
+                        {foreach $queue as $j}
+                            <div class="queue-row">
+                                <span class="grow">{$j['who']}</span>
+                                <span class="hint">{$j['what']}</span>
+                                <span class="mono hint">{$j['age']}</span>
+                            </div>
+                        {/foreach}
+                    </div>
+                {else}
+                    <div class="hint" style="margin-top:10px">ไม่มีงานค้างในคิว</div>
+                {/if}
+            </div>
+
+            <div class="card">
+                <div class="admin-gpu-head"><strong>การใช้งาน 7 วันที่ผ่านมา</strong><span class="grow"></span><span class="mono hint">รวม {$weekTotal} ครั้ง</span></div>
+                <div class="chart">
+                    {foreach $chart as $c}
+                        <div class="chart-col">
+                            <div class="mono hint">{$c['n']}</div>
+                            <div class="chart-bars">
+                                <div class="chart-bar chart-bar-own" style="height: {$c['ownH']}"></div>
+                                <div class="chart-bar chart-bar-college" style="height: {$c['collegeH']}"></div>
+                            </div>
+                            <div class="hint">{$c['day']}</div>
+                        </div>
+                    {/foreach}
+                </div>
+                <div class="chart-legend">
+                    <span><i style="background:var(--brand)"></i>AI ของวิทยาลัย</span>
+                    <span><i style="background:var(--brandLine)"></i>คีย์ของครูเอง</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:22px;padding:0;overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--line)">
+            <strong>การใช้งานรายครู · เดือนนี้</strong>
+            <span class="hint" style="margin-left:10px">เรียงตามจำนวนครั้งที่ใช้ AI ของวิทยาลัย</span>
+        </div>
+        <div class="table-scroll">
+            <table class="data">
+                <thead><tr><th>ครู</th><th class="num">AI วิทยาลัย</th><th class="num">คีย์ของตัวเอง</th><th class="num">โควตาคงเหลือ</th></tr></thead>
+                <tbody>
+                {foreach $usage as $u}
+                    <tr>
+                        <td>{$u['name']}</td>
+                        <td class="num mono">{$u['college']}</td>
+                        <td class="num mono" style="color:var(--ink3)">{$u['own']}</td>
+                        <td class="num mono" style="color: var(--{$u['left_kind']})">{$u['left']}</td>
+                    </tr>
+                {/foreach}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:22px">
+        <strong>เพดานโควตาต่อครูต่อเดือน</strong>
+        <div class="hint" style="margin-top:6px">ครูที่ใช้คีย์ของตัวเองจะไม่ถูกนับในโควตานี้</div>
+        <form method="post" action="{$base}/admin/ai/cap" style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input type="hidden" name="_token" value="{$csrf}">
+            {foreach $caps as $c}
+                <button type="submit" name="cap" value="{$c}" n:class="pill, mono, $c === $cap ? is-on">
+                    {$c === 0 ? 'ไม่จำกัด' : $c}
+                </button>
+            {/foreach}
+        </form>
+        <div class="hint" style="margin-top:14px;padding:13px 15px;border-radius:10px;background:var(--surface2);line-height:1.65">
+            {if $cap > 0}
+                ที่เพดาน {$cap} ครั้ง/เดือน ครูนำร่อง {$teacherCount} คนใช้รวมกันได้ประมาณ {$capTotal} ครั้ง
+            {else}
+                ไม่จำกัดโควตา — เครื่องจะรับงานตามลำดับคิว เหมาะกับช่วงทดลองใช้เท่านั้น
+            {/if}
+        </div>
+    </div>
+</div>
+{/block}

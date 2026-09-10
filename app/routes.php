@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Auth\AuthMiddleware;
 use App\Auth\RoleMiddleware;
+use App\Controllers\Admin\AiController as AdminAiController;
 use App\Controllers\Admin\DemoController;
 use App\Controllers\Admin\MigrationController;
+use App\Controllers\Admin\UsersController as AdminUsersController;
 use App\Controllers\AuthController;
 use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
@@ -88,6 +90,10 @@ return static function (App $app): void {
 
             $admin->get('/demo', [DemoController::class, 'index'])->setName('admin.demo');
             $admin->post('/demo/seed', [DemoController::class, 'seed']);
+
+            $admin->get('/ai', [AdminAiController::class, 'index'])->setName('admin.ai');
+            $admin->post('/ai/cap', [AdminAiController::class, 'saveCap']);
+            $admin->get('/users', [AdminUsersController::class, 'index'])->setName('admin.users');
         })->add(new RoleMiddleware(['admin']));
     })->add(ViewContext::class)->add(AuthMiddleware::class);
 };
