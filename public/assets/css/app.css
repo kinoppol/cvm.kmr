@@ -512,6 +512,50 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
 .plan-doc-sub { font-size: 13px; color: var(--ink2); margin-top: 4px; }
 .plan-doc-foot { padding-top: 16px; display: flex; justify-content: space-between; font-size: 13px; color: var(--ink3); }
 
+/* ---------- นักเรียนทำแบบทดสอบ ---------- */
+.take { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.take-bar { flex: none; background: var(--surface); border-bottom: 1px solid var(--line); padding: 14px 0 0; position: sticky; top: 0; z-index: 20; }
+.take-bar-inner { max-width: 760px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 16px; }
+.take-code { font-size: 12px; color: var(--ink3); }
+.take-title { font: 600 15px/1.3 var(--sans); margin-top: 3px; }
+.take-clock { font: 500 20px/1 var(--mono); color: var(--brand); font-variant-numeric: tabular-nums; }
+.take-progress { max-width: 760px; margin: 12px auto 0; }
+.take-meta { padding-top: 8px; padding-bottom: 12px; font-size: 12.5px; color: var(--ink3); justify-content: space-between; }
+.take-main { flex: 1; max-width: 760px; width: 100%; margin: 0 auto; padding: 28px 24px; }
+.take-q-text { font: 400 19px/1.7 var(--body); }
+.take-choices { margin-top: 22px; display: flex; flex-direction: column; gap: 11px; }
+.take-choice {
+    display: flex; gap: 13px; align-items: flex-start; width: 100%; text-align: left;
+    padding: 16px 18px; border-radius: 12px; border: 1.5px solid var(--line);
+    background: var(--surface); color: var(--ink); font: 400 15.5px/1.6 var(--body); cursor: pointer;
+    min-height: 56px;
+}
+.take-choice:hover { border-color: var(--brandLine); }
+.take-choice.is-picked { border-color: var(--brand); background: var(--brandSoft); }
+.take-choice-key {
+    flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line);
+    display: grid; place-items: center; font-size: 12.5px; color: var(--ink3);
+}
+.take-choice.is-picked .take-choice-key { background: var(--brand); border-color: var(--brand); color: #fff; }
+.take-answer { margin-top: 20px; height: auto; padding: 14px; line-height: 1.7; }
+.take-foot {
+    flex: none; position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line);
+    padding: 14px 24px; display: flex; align-items: center; gap: 12px;
+}
+.take-foot .btn { height: 44px; }
+
+.result-check {
+    width: 52px; height: 52px; margin: 0 auto; border-radius: 50%;
+    background: var(--okSoft); color: var(--ok); display: grid; place-items: center; font-size: 22px;
+}
+.result-score { font: 600 32px/1 var(--mono); color: var(--brand); margin-top: 14px; }
+
+@media (max-width: 560px) {
+    .take-bar-inner, .take-main, .take-progress, .take-foot { padding-left: 16px; padding-right: 16px; }
+    .take-q-text { font-size: 17px; }
+    .take-foot .btn { padding: 0 14px; }
+}
+
 /* ---------- ตั้งค่าผู้ช่วย AI ---------- */
 .ai-cards { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
 .ai-card h2 { margin-top: 14px; }

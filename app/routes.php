@@ -14,6 +14,7 @@ use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
 use App\Controllers\ReviewController;
 use App\Controllers\SettingsController;
+use App\Controllers\StudentController;
 use App\Support\Url;
 use App\Support\ViewContext;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -58,6 +59,17 @@ return static function (App $app): void {
 
         $group->get('/review', [ReviewController::class, 'index'])
             ->setName('review')->add(new RoleMiddleware(['teacher']));
+
+        $group->group('/learn', function (RouteCollectorProxy $s): void {
+            $s->get('', [StudentController::class, 'courses'])->setName('learn');
+            $s->get('/{courseId:[0-9]+}', [StudentController::class, 'course']);
+            $s->get('/lessons/{id:[0-9]+}', [StudentController::class, 'lesson']);
+            $s->post('/quizzes/{quizId:[0-9]+}/start', [StudentController::class, 'startQuiz']);
+            $s->get('/attempts/{attemptId:[0-9]+}', [StudentController::class, 'take']);
+            $s->post('/attempts/{attemptId:[0-9]+}/answer', [StudentController::class, 'answer']);
+            $s->post('/attempts/{attemptId:[0-9]+}/submit', [StudentController::class, 'submit']);
+            $s->get('/attempts/{attemptId:[0-9]+}/result', [StudentController::class, 'result']);
+        })->add(new RoleMiddleware(['student']));
 
         $group->group('/settings', function (RouteCollectorProxy $s): void {
             $s->get('/ai', [SettingsController::class, 'ai'])->setName('settings.ai');

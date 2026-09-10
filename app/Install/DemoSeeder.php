@@ -137,6 +137,15 @@ final class DemoSeeder
         $this->seedElectricalLessons($courseId['elec'], $teacherId['thanaphon']);
         $log[] = 'เพิ่มบทเรียนตัวอย่าง';
 
+        // ---- แบบทดสอบที่เผยแพร่แล้ว + ผลการทำของนักเรียนบางส่วน ----
+        $this->seedPublishedQuiz(
+            $courseId['mecha'],
+            $teacherId['thanaphon'],
+            'แบบทดสอบบทที่ 2 · ระบบไฟฟ้าและการควบคุมพื้นฐาน',
+            array_slice($studentIds, 0, 26)
+        );
+        $log[] = 'เพิ่มแบบทดสอบที่เผยแพร่แล้วพร้อมคะแนนนักเรียน';
+
         // ---- เครื่อง AI ของวิทยาลัย ----
         $endpointId = $this->db->insert('ai_endpoints', [
             'name' => 'AI ของวิทยาลัย',
@@ -371,6 +380,86 @@ final class DemoSeeder
                     date('Y-m-d H:i:s', strtotime($when)),
                 ]
             );
+        }
+    }
+
+    /** แบบทดสอบที่เผยแพร่แล้ว พร้อมให้บางส่วนของนักเรียนทำและตรวจคะแนนไว้ */
+    private function seedPublishedQuiz(int $courseId, int $teacherId, string $title, array $studentIds): void
+    {
+        $pool = \App\AI\QuestionBank::pick('20100-1005', ['กฎของโอห์ม', 'วงจรไฟฟ้าเบื้องต้น']);
+        $choiceOnly = array_values(array_filter($pool, static fn (array $q): bool => $q['type'] === 'choice'));
+        $selected = array_slice($choiceOnly, 0, 5);
+
+        $quizId = $this->db->insert('quizzes', [
+            'course_id' => $courseId,
+            'title' => $title,
+            'time_limit_minutes' => 20,
+            'attempts_allowed' => 2,
+            'source' => 'ai',
+            'review_status' => 'published',
+            'created_by' => $teacherId,
+        ]);
+
+        $keys = ['ก', 'ข', 'ค', 'ง'];
+        $questionIds = [];
+        $correctChoiceId = [];
+        foreach ($selected as $order => $q) {
+            $qid = $this->db->insert('quiz_questions', [
+                'quiz_id' => $quizId,
+                'type' => 'choice',
+                'question' => $q['question'],
+                'explanation' => $q['explanation'],
+                'score' => 2.0,
+                'sort_order' => $order,
+                'source' => 'ai',
+            ]);
+            $questionIds[] = $qid;
+            foreach ($q['choices'] as $ci => $text) {
+                $cid = $this->db->insert('quiz_choices', [
+                    'question_id' => $qid,
+                    'label' => $keys[$ci] ?? '',
+                    'content' => $text,
+                    'is_correct' => $ci === $q['answer'] ? 1 : 0,
+                    'sort_order' => $ci,
+                ]);
+                if ($ci === $q['answer']) {
+                    $correctChoiceId[$qid] = $cid;
+                }
+            }
+        }
+
+        // ให้นักเรียน 22 จาก 26 คนทำเสร็จแล้ว ด้วยคะแนนกระจายพอสมเหตุสมผล
+        $doneCount = min(22, count($studentIds));
+        for ($i = 0; $i < $doneCount; $i++) {
+            $studentId = $studentIds[$i];
+            $attemptId = $this->db->insert('quiz_attempts', [
+                'quiz_id' => $quizId,
+                'student_id' => $studentId,
+                'attempt_no' => 1,
+                'status' => 'graded',
+                'started_at' => date('Y-m-d H:i:s', strtotime('-3 days')),
+                'submitted_at' => date('Y-m-d H:i:s', strtotime('-3 days +8 minutes')),
+            ]);
+
+            $score = 0.0;
+            $wrongEvery = 2 + ($i % 4); // นักเรียนบางคนตอบผิดถี่กว่า
+            foreach ($questionIds as $idx => $qid) {
+                $correct = ($idx % $wrongEvery) !== 0;
+                $choiceId = $correct
+                    ? $correctChoiceId[$qid]
+                    : $this->db->int('SELECT id FROM {quiz_choices} WHERE question_id = ? AND is_correct = 0 ORDER BY id LIMIT 1', [$qid]);
+
+                $this->db->insert('quiz_answers', [
+                    'attempt_id' => $attemptId,
+                    'question_id' => $qid,
+                    'choice_id' => $choiceId,
+                    'is_correct' => $correct ? 1 : 0,
+                    'score' => $correct ? 2.0 : 0.0,
+                ]);
+                $score += $correct ? 2.0 : 0.0;
+            }
+
+            $this->db->update('quiz_attempts', ['score' => $score, 'max_score' => count($questionIds) * 2.0], ['id' => $attemptId]);
         }
     }
 

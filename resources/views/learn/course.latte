@@ -1,0 +1,60 @@
+{layout '../layout.latte'}
+
+{block title}{$course['name']}{/block}
+
+{block content}
+<div class="course-page">
+    <div class="course-header">
+        <div class="course-header-inner">
+            <div class="course-head-code">{$course['code']} · ผู้สอน {$course['teacher_name'] ?? '—'}</div>
+            <h1>{$course['name']}</h1>
+            <div class="course-head-stats">{count($lessons)} บทเรียน · แบบทดสอบ {count($quizzes)} ชุด</div>
+        </div>
+    </div>
+
+    <div class="course-body">
+        <h2 style="font:600 16px/1.3 var(--sans)">แบบทดสอบ</h2>
+        {if $quizzes}
+            <div class="list">
+                {foreach $quizzes as $q}
+                    <div class="list-row">
+                        <div class="list-main">
+                            <div class="list-title">{$q['title']}</div>
+                            <div class="list-meta">{$q['question_count']} ข้อ{if $q['time_limit_minutes']} · เวลา {$q['time_limit_minutes']} นาที{/if} · {$q['status_label']}</div>
+                        </div>
+                        {if $q['active_attempt']}
+                            <a class="btn btn-sm btn-primary" href="{$base}/learn/attempts/{$q['active_attempt']}">ทำต่อ</a>
+                        {else}
+                            <form method="post" action="{$base}/learn/quizzes/{$q['id']}/start">
+                                <input type="hidden" name="_token" value="{$csrf}">
+                                <button type="submit" class="btn btn-sm {if $q['best'] === null}btn-primary{/if}">
+                                    {$q['best'] === null ? 'เริ่มทำ' : 'ทำอีกครั้ง'}
+                                </button>
+                            </form>
+                        {/if}
+                    </div>
+                {/foreach}
+            </div>
+        {else}
+            <div class="empty"><h3>ยังไม่มีแบบทดสอบที่เปิดให้ทำ</h3></div>
+        {/if}
+
+        <h2 style="font:600 16px/1.3 var(--sans);margin-top:34px">เนื้อหาบทเรียน</h2>
+        {if $lessons}
+            <div class="list">
+                {foreach $lessons as $l}
+                    <a class="list-row" href="{$base}/learn/lessons/{$l['id']}" style="color:inherit">
+                        <div class="list-no">{sprintf('%02d', $iterator->counter)}</div>
+                        <div class="list-main">
+                            <div class="list-title">{$l['title']}</div>
+                            {if $l['summary']}<div class="list-meta">{$l['summary']}</div>{/if}
+                        </div>
+                    </a>
+                {/foreach}
+            </div>
+        {else}
+            <div class="empty"><h3>ยังไม่มีบทเรียนที่เผยแพร่</h3></div>
+        {/if}
+    </div>
+</div>
+{/block}
