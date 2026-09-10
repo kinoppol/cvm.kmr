@@ -10,6 +10,7 @@ use App\Controllers\AuthController;
 use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
 use App\Controllers\LessonController;
+use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
 use App\Controllers\ReviewController;
 use App\Support\Url;
@@ -46,6 +47,12 @@ return static function (App $app): void {
             $t->post('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}', [QuizWizardController::class, 'save']);
             $t->post('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}/questions/{qid:[0-9]+}/regenerate', [QuizWizardController::class, 'regenerateOne']);
             $t->post('/{courseId:[0-9]+}/quizzes/{quizId:[0-9]+}/questions/{qid:[0-9]+}/delete', [QuizWizardController::class, 'deleteQuestion']);
+
+            $t->get('/{courseId:[0-9]+}/lesson-plan', [LessonPlanController::class, 'form']);
+            $t->get('/{courseId:[0-9]+}/lesson-plan/stream', [LessonPlanController::class, 'stream']);
+            $t->get('/{courseId:[0-9]+}/lesson-plan/{id:[0-9]+}', [LessonPlanController::class, 'edit']);
+            $t->get('/{courseId:[0-9]+}/lesson-plan/{id:[0-9]+}/export.{format:doc|pdf}', [LessonPlanController::class, 'export']);
+            $t->post('/{courseId:[0-9]+}/lesson-plan/{id:[0-9]+}', [LessonPlanController::class, 'save']);
         })->add(new RoleMiddleware(['teacher']));
 
         $group->get('/review', [ReviewController::class, 'index'])

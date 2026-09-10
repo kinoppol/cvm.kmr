@@ -498,6 +498,20 @@ table.data td.num, table.data th.num { text-align: right; }
 .back-link:hover { color: var(--brand); }
 textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
 
+/* ---------- แผนการจัดการเรียนรู้ ---------- */
+.plan-grid { grid-template-columns: 330px minmax(0, 1fr); }
+.plan-input { position: sticky; top: 16px; }
+.plan-input .field { margin-bottom: 12px; }
+.plan-stream { display: flex; flex-direction: column; gap: 4px; }
+.plan-section { padding: 16px 0; border-bottom: 1px solid var(--line2); }
+.plan-section-head { font: 600 14px/1.4 var(--sans); color: var(--brand); }
+.plan-section-body { margin-top: 8px; font: 400 14.5px/1.85 var(--body); color: var(--ink2); white-space: pre-line; padding: 4px; border-radius: 4px; }
+.plan-doc { padding: 30px 34px; margin-top: 14px; }
+.plan-doc-head { text-align: center; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+.plan-doc-title { font: 600 16px/1.4 var(--sans); }
+.plan-doc-sub { font-size: 13px; color: var(--ink2); margin-top: 4px; }
+.plan-doc-foot { padding-top: 16px; display: flex; justify-content: space-between; font-size: 13px; color: var(--ink3); }
+
 /* ---------- หน้ารอตรวจ ---------- */
 .review-group { margin-top: 26px; }
 .review-group-head { display: flex; align-items: baseline; gap: 10px; }

@@ -32,13 +32,17 @@ final class View
     /** @param array<string,mixed> $params */
     public function render(ResponseInterface $response, string $template, array $params = []): ResponseInterface
     {
-        $html = $this->latte->renderToString(
+        $response->getBody()->write($this->renderToString($template, $params));
+
+        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+
+    /** @param array<string,mixed> $params */
+    public function renderToString(string $template, array $params = []): string
+    {
+        return $this->latte->renderToString(
             Paths::views() . '/' . ltrim($template, '/') . '.latte',
             $params + $this->shared + ['flash' => Flash::pull(), 'csrf' => Csrf::token()]
         );
-
-        $response->getBody()->write($html);
-
-        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 }

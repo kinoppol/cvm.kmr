@@ -189,9 +189,10 @@ final class DemoSeeder
         $this->db->pdo()->exec('SET FOREIGN_KEY_CHECKS = 0');
         try {
             foreach (self::RESET_TABLES as $table) {
-                $this->db->pdo()->exec(sprintf('DELETE FROM `%s`', $this->db->table($table)));
+                // TRUNCATE รีเซ็ต AUTO_INCREMENT ด้วย ทำให้ id ของข้อมูลตัวอย่างคงที่ทุกครั้งที่ seed
+                $this->db->pdo()->exec(sprintf('TRUNCATE TABLE `%s`', $this->db->table($table)));
             }
-            // ลบเฉพาะบัญชีครู/นักเรียนตัวอย่าง (ไม่แตะ admin)
+            // ลบเฉพาะบัญชีครู/นักเรียนตัวอย่าง (ไม่แตะ admin) — ใช้ DELETE เพราะ users มี admin ปนอยู่
             $this->db->run("DELETE FROM {users} WHERE role IN ('teacher','student')");
         } finally {
             $this->db->pdo()->exec('SET FOREIGN_KEY_CHECKS = 1');
