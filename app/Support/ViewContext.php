@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Auth\Auth;
 use App\Domain\ReviewRepository;
 use App\Domain\SettingsRepository;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -21,6 +22,7 @@ final class ViewContext implements MiddlewareInterface
         private readonly View $view,
         private readonly SettingsRepository $settings,
         private readonly ReviewRepository $reviews,
+        private readonly Auth $auth,
     ) {
     }
 
@@ -31,6 +33,7 @@ final class ViewContext implements MiddlewareInterface
 
         $this->view->share('user', $user);
         $this->view->share('term', $this->termLabel());
+        $this->view->share('impersonatedBy', $this->auth->isImpersonating() ? $this->auth->impersonatorName() : null);
 
         if (is_array($user) && ($user['role'] ?? '') === 'teacher') {
             $this->view->share('reviewCount', $this->reviews->pendingCount((int) $user['id']));

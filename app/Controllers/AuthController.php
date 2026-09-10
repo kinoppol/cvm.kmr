@@ -65,10 +65,29 @@ final class AuthController
     {
         $data = (array) $request->getParsedBody();
 
-        if (Csrf::check($data['_token'] ?? null)) {
-            $this->auth->log('logout');
-            $this->auth->logout();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            return $this->redirect($response, '/dashboard');
         }
+
+        // ถ้ากำลังสวมสิทธิ์ผู้ใช้อื่นอยู่ การ "ออกจากระบบ" คือกลับไปเป็นผู้ดูแลเดิม
+        if ($this->auth->isImpersonating()) {
+            $leftUserId = (int) ($_SESSION['user_id'] ?? 0);
+            $restored = $this->auth->stopImpersonating();
+
+            if ($restored) {
+                $this->auth->log('impersonate.stop', 'user#' . $leftUserId);
+                Flash::success('กลับมาเป็นผู้ดูแลระบบแล้ว');
+
+                return $this->redirect($response, '/admin/users');
+            }
+
+            Flash::error('บัญชีผู้ดูแลเดิมใช้งานไม่ได้ กรุณาเข้าสู่ระบบใหม่');
+
+            return $this->redirect($response, '/login');
+        }
+
+        $this->auth->log('logout');
+        $this->auth->logout();
 
         return $this->redirect($response, '/login');
     }

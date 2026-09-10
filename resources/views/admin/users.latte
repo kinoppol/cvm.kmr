@@ -19,7 +19,7 @@
 <div class="card">
     <div class="table-scroll">
         <table class="data">
-            <thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ-สกุล</th><th>บทบาท</th><th>สถานะ</th><th>เข้าใช้ล่าสุด</th></tr></thead>
+            <thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ-สกุล</th><th>บทบาท</th><th>สถานะ</th><th>เข้าใช้ล่าสุด</th><th></th></tr></thead>
             <tbody>
             {foreach $users as $u}
                 <tr>
@@ -31,6 +31,15 @@
                         {else}<span class="chip chip-err">ระงับ</span>{/if}
                     </td>
                     <td class="mono" style="font-size:12.5px">{$u['last_login_text']}</td>
+                    <td style="text-align:right">
+                        {if $u['role'] !== 'admin' && $u['status'] === 'active' && (int) $u['id'] !== (int) ($user['id'] ?? 0)}
+                            <form method="post" action="{$base}/admin/users/{$u['id']}/impersonate"
+                                  onsubmit="return confirm('เข้าใช้งานระบบในนาม {$u['full_name']}? จะกลับเป็นผู้ดูแลได้เมื่อกด กลับเป็นผู้ดูแล')">
+                                <input type="hidden" name="_token" value="{$csrf}">
+                                <button type="submit" class="btn btn-sm">สวมสิทธิ์</button>
+                            </form>
+                        {/if}
+                    </td>
                 </tr>
             {/foreach}
             </tbody>

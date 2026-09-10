@@ -327,6 +327,20 @@ dialog.modal .modal-foot {
     font: 500 11px/20px var(--mono); text-align: center;
 }
 
+/* ---------- แถบสวมสิทธิ์ผู้ใช้ ---------- */
+.impersonate-bar {
+    flex: none; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    background: var(--warn); color: #fff; padding: 8px 20px;
+    font: 500 12.5px/1.5 var(--sans); position: sticky; top: 0; z-index: 50;
+}
+.impersonate-bar strong { font-weight: 700; }
+.impersonate-bar form { margin-left: auto; }
+.impersonate-bar button {
+    border: 1px solid rgba(255, 255, 255, .6); background: transparent; color: #fff;
+    border-radius: 7px; padding: 5px 12px; font: 500 12.5px/1 var(--sans); cursor: pointer;
+}
+.impersonate-bar button:hover { background: rgba(255, 255, 255, .15); }
+
 /* ---------- เมนูล่างสำหรับมือถือ ---------- */
 .mobile-nav { display: none; }
 @media (max-width: 860px) {

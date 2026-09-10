@@ -66,6 +66,76 @@ final class Auth
         session_regenerate_id(true);
     }
 
+    /**
+     * ผู้ดูแลระบบสวมสิทธิ์ผู้ใช้อื่นชั่วคราว — เก็บ id เดิมไว้เพื่อกลับคืนตอนออกจากระบบ
+     * ไม่แตะ last_login_at ของบัญชีปลายทาง
+     */
+    public function impersonate(array $target): void
+    {
+        $original = (int) ($_SESSION['user_id'] ?? 0);
+        session_regenerate_id(true);
+        $_SESSION['impersonator_id'] = $_SESSION['impersonator_id'] ?? $original;
+        $_SESSION['user_id'] = (int) $target['id'];
+        $_SESSION['user_role'] = $target['role'];
+    }
+
+    public function isImpersonating(): bool
+    {
+        return !empty($_SESSION['impersonator_id']);
+    }
+
+    public function impersonatorId(): ?int
+    {
+        return $this->isImpersonating() ? (int) $_SESSION['impersonator_id'] : null;
+    }
+
+    public function impersonatorName(): ?string
+    {
+        $id = $this->impersonatorId();
+        if ($id === null) {
+            return null;
+        }
+
+        $stmt = $this->db->prepare(sprintf('SELECT full_name FROM `%susers` WHERE id = ?', $this->prefix));
+        $stmt->execute([$id]);
+        $name = $stmt->fetchColumn();
+
+        return $name === false ? 'ผู้ดูแลระบบ' : (string) $name;
+    }
+
+    /**
+     * กลับไปเป็นบัญชีผู้ดูแลเดิม คืนค่า true ถ้าทำได้
+     * ถ้าบัญชีเดิมหายหรือถูกระงับ จะล้างเซสชันทั้งหมดเพื่อความปลอดภัย
+     */
+    public function stopImpersonating(): bool
+    {
+        if (!$this->isImpersonating()) {
+            return false;
+        }
+
+        $adminId = (int) $_SESSION['impersonator_id'];
+        unset($_SESSION['impersonator_id']);
+
+        $stmt = $this->db->prepare(sprintf(
+            'SELECT id, role, status FROM `%susers` WHERE id = ?',
+            $this->prefix
+        ));
+        $stmt->execute([$adminId]);
+        $admin = $stmt->fetch();
+
+        if ($admin === false || $admin['role'] !== 'admin' || $admin['status'] !== 'active') {
+            $this->logout();
+
+            return false;
+        }
+
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = (int) $admin['id'];
+        $_SESSION['user_role'] = $admin['role'];
+
+        return true;
+    }
+
     public function user(): ?array
     {
         if (empty($_SESSION['user_id'])) {
@@ -129,6 +199,11 @@ final class Auth
 
     public function log(string $action, ?string $target = null, array $meta = []): void
     {
+        // เมื่อผู้ดูแลกำลังสวมสิทธิ์ ให้บันทึกด้วยว่าใครเป็นคนสั่งจริง
+        if ($this->isImpersonating()) {
+            $meta['via_admin_id'] = $this->impersonatorId();
+        }
+
         $stmt = $this->db->prepare(sprintf(
             'INSERT INTO `%saudit_logs` (user_id, action, target, meta, ip_address) VALUES (?, ?, ?, ?, ?)',
             $this->prefix

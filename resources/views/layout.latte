@@ -20,6 +20,15 @@
 {var $role = $user['role'] ?? 'student'}
 {var $rc = $reviewCount ?? 0}
 <div class="app">
+    {if isset($impersonatedBy) && $impersonatedBy}
+        <div class="impersonate-bar">
+            <span>กำลังใช้งานในนาม <strong>{$user['full_name'] ?? 'ผู้ใช้'}</strong> ({$role === 'teacher' ? 'ครูผู้สอน' : ($role === 'admin' ? 'ผู้ดูแลระบบ' : 'นักเรียน')}) · สวมสิทธิ์โดย {$impersonatedBy}</span>
+            <form method="post" action="{$base}/impersonate/stop">
+                <input type="hidden" name="_token" value="{$csrf}">
+                <button type="submit">กลับเป็นผู้ดูแล</button>
+            </form>
+        </div>
+    {/if}
     <header class="topbar">
         <a href="{$base}/" class="brand">
             <div class="brand-mark">RV</div>
@@ -34,9 +43,9 @@
                 <span class="text-muted">· {$role === 'admin' ? 'ผู้ดูแลระบบ' : ($role === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน')}</span>
             </div>
         </div>
-        <form method="post" action="{$base}/logout">
+        <form method="post" action="{$base}/{isset($impersonatedBy) && $impersonatedBy ? 'impersonate/stop' : 'logout'}">
             <input type="hidden" name="_token" value="{$csrf}">
-            <button type="submit" class="btn btn-sm">ออกจากระบบ</button>
+            <button type="submit" class="btn btn-sm">{isset($impersonatedBy) && $impersonatedBy ? 'กลับเป็นผู้ดูแล' : 'ออกจากระบบ'}</button>
         </form>
     </header>
 

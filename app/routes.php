@@ -11,6 +11,7 @@ use App\Controllers\Admin\UsersController as AdminUsersController;
 use App\Controllers\AuthController;
 use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
+use App\Controllers\ImpersonationController;
 use App\Controllers\LessonController;
 use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
@@ -36,6 +37,9 @@ return static function (App $app): void {
 
     $app->group('', function (RouteCollectorProxy $group): void {
         $group->get('/dashboard', [DashboardController::class, 'index'])->setName('dashboard');
+
+        // เลิกสวมสิทธิ์ — ต้องเข้าถึงได้ทุกบทบาทที่ล็อกอินอยู่ จึงอยู่นอกกลุ่มตามบทบาท
+        $group->post('/impersonate/stop', [ImpersonationController::class, 'stop'])->setName('impersonate.stop');
 
         $group->group('/courses', function (RouteCollectorProxy $t): void {
             $t->get('', [CourseController::class, 'index'])->setName('courses');
@@ -94,6 +98,7 @@ return static function (App $app): void {
             $admin->get('/ai', [AdminAiController::class, 'index'])->setName('admin.ai');
             $admin->post('/ai/cap', [AdminAiController::class, 'saveCap']);
             $admin->get('/users', [AdminUsersController::class, 'index'])->setName('admin.users');
+            $admin->post('/users/{id:[0-9]+}/impersonate', [ImpersonationController::class, 'start']);
         })->add(new RoleMiddleware(['admin']));
     })->add(ViewContext::class)->add(AuthMiddleware::class);
 };
