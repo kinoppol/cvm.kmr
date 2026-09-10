@@ -102,7 +102,7 @@ final class QuizWizardController
         $user = $request->getAttribute('user');
         $course = $this->ownedCourse($request, (int) $args['courseId'], (int) $user['id']);
         $params = $this->readParams($request, $course);
-        $quality = ($request->getQueryParams()['quality'] ?? 'fast') === 'quality' ? 'quality' : 'fast';
+        $quality = $this->settings->userQualityPref((int) $user['id']);
 
         ignore_user_abort(true);
         @set_time_limit(0);

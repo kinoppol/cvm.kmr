@@ -52,6 +52,12 @@ final class SettingsRepository
         return $this->cache;
     }
 
+    /** โหมดคุณภาพผลลัพธ์ที่ครูคนนี้เลือก: 'fast' (ประหยัด) หรือ 'quality' (คุณภาพสูง) */
+    public function userQualityPref(int $userId): string
+    {
+        return $this->get('ai_quality:' . $userId) === 'quality' ? 'quality' : 'fast';
+    }
+
     public function set(string $name, mixed $value, string $type = 'string', string $group = 'general'): void
     {
         $stored = $type === 'json' ? (string) json_encode($value, JSON_UNESCAPED_UNICODE) : (string) $value;

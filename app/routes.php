@@ -13,6 +13,7 @@ use App\Controllers\LessonController;
 use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
 use App\Controllers\ReviewController;
+use App\Controllers\SettingsController;
 use App\Support\Url;
 use App\Support\ViewContext;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -57,6 +58,14 @@ return static function (App $app): void {
 
         $group->get('/review', [ReviewController::class, 'index'])
             ->setName('review')->add(new RoleMiddleware(['teacher']));
+
+        $group->group('/settings', function (RouteCollectorProxy $s): void {
+            $s->get('/ai', [SettingsController::class, 'ai'])->setName('settings.ai');
+            $s->post('/ai/test', [SettingsController::class, 'test']);
+            $s->post('/ai/connect', [SettingsController::class, 'connect']);
+            $s->post('/ai/disconnect', [SettingsController::class, 'disconnect']);
+            $s->post('/ai/mode', [SettingsController::class, 'mode']);
+        })->add(new RoleMiddleware(['teacher']));
 
         $group->group('/admin', function (RouteCollectorProxy $admin): void {
             $admin->get('/migrations', [MigrationController::class, 'index'])->setName('admin.migrations');

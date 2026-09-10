@@ -512,6 +512,60 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
 .plan-doc-sub { font-size: 13px; color: var(--ink2); margin-top: 4px; }
 .plan-doc-foot { padding-top: 16px; display: flex; justify-content: space-between; font-size: 13px; color: var(--ink3); }
 
+/* ---------- ตั้งค่าผู้ช่วย AI ---------- */
+.ai-cards { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.ai-card h2 { margin-top: 14px; }
+.ai-card > p { font-size: 13.5px; color: var(--ink2); margin: 8px 0 0; line-height: 1.7; }
+.ai-card-college { border-color: var(--brand); border-width: 1.5px; }
+.feat { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: var(--ink2); }
+.feat li { display: flex; gap: 9px; }
+.feat .ok { color: var(--ok); }
+.feat .dot { color: var(--ink3); }
+.quota-box { margin-top: 18px; padding: 14px; border-radius: 11px; background: var(--surface2); }
+.quota-box-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink2); }
+.quota-box .bar { margin-top: 9px; background: var(--line); }
+.quota-box .hint { margin-top: 8px; }
+.ai-status { margin-top: 14px; display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink2); }
+.dot-status { width: 8px; height: 8px; border-radius: 50%; background: var(--err); flex: none; }
+.dot-status.is-online { background: var(--ok); }
+.mode-row { display: flex; gap: 10px; }
+.mode-row .level-card { cursor: pointer; }
+
+/* modal */
+.modal-backdrop {
+    position: fixed; inset: 0; z-index: 60; background: rgba(10, 24, 21, .45);
+    display: grid; place-items: center; padding: 24px;
+}
+.modal-panel {
+    width: 100%; max-width: 560px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+    box-shadow: 0 24px 60px rgba(8, 24, 20, .34); animation: rvcIn .2s ease;
+}
+.modal-head { padding: 18px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 14px; }
+.modal-title { font: 600 16px/1.3 var(--sans); }
+.modal-progress { height: 3px; background: var(--surface2); }
+.modal-progress > span { display: block; height: 100%; background: var(--brand); transition: width .3s ease; }
+.modal-body { padding: 22px; }
+.modal-foot { padding: 16px 22px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+.icon-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink2); cursor: pointer; }
+
+.prov-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.prov-row {
+    display: flex; gap: 14px; align-items: center; text-align: left; width: 100%;
+    padding: 15px 16px; border-radius: 12px; border: 1.5px solid var(--line);
+    background: var(--surface); cursor: pointer; color: var(--ink);
+}
+.prov-row.is-on { border-color: var(--brand); background: var(--brandSoft); }
+.prov-mark { flex: none; width: 36px; height: 36px; border-radius: 9px; background: var(--surface2); display: grid; place-items: center; font-size: 13px; color: var(--ink2); }
+.prov-name { display: block; font: 500 14.5px/1.3 var(--sans); }
+.prov-hint { display: block; font-size: 12.5px; color: var(--ink3); margin-top: 3px; }
+.prov-tick { flex: none; color: transparent; }
+.prov-row.is-on .prov-tick { color: var(--brand); }
+.key-steps { list-style: none; margin: 16px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.key-steps li { display: flex; gap: 14px; padding: 15px 16px; border-top: 1px solid var(--line2); align-items: flex-start; font: 400 13.5px/1.65 var(--body); color: var(--ink2); }
+.key-steps li:first-child { border-top: 0; }
+.key-steps li span { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--brandSoft); color: var(--brand); display: grid; place-items: center; font: 500 12px/1 var(--mono); }
+
 /* ---------- หน้ารอตรวจ ---------- */
 .review-group { margin-top: 26px; }
 .review-group-head { display: flex; align-items: baseline; gap: 10px; }
