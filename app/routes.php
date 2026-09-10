@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Auth\AuthMiddleware;
 use App\Auth\RoleMiddleware;
+use App\Controllers\Admin\DemoController;
 use App\Controllers\Admin\MigrationController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
 use App\Support\Url;
+use App\Support\ViewContext;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
@@ -32,6 +34,9 @@ return static function (App $app): void {
             $admin->post('/migrations/run', [MigrationController::class, 'run']);
             $admin->post('/migrations/rollback', [MigrationController::class, 'rollback']);
             $admin->post('/migrations/reset', [MigrationController::class, 'reset']);
+
+            $admin->get('/demo', [DemoController::class, 'index'])->setName('admin.demo');
+            $admin->post('/demo/seed', [DemoController::class, 'seed']);
         })->add(new RoleMiddleware(['admin']));
-    })->add(AuthMiddleware::class);
+    })->add(ViewContext::class)->add(AuthMiddleware::class);
 };

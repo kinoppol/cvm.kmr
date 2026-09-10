@@ -3,9 +3,17 @@
 declare(strict_types=1);
 
 use App\Auth\Auth;
+use App\Domain\CourseRepository;
+use App\Domain\EnrollmentRepository;
+use App\Domain\LessonRepository;
+use App\Domain\QuizRepository;
+use App\Domain\ReviewRepository;
+use App\Domain\SettingsRepository;
+use App\Install\DemoSeeder;
 use App\Migration\Migrator;
 use App\Support\Config;
 use App\Support\Database;
+use App\Support\Db;
 use App\Support\Paths;
 use App\Support\Url;
 use App\Support\View;
@@ -33,6 +41,16 @@ $builder->addDefinitions([
     Auth::class => static fn (PDO $db, Config $config): Auth => new Auth($db, (string) $config->get('db.prefix', '')),
 
     Migrator::class => static fn (PDO $db, Config $config): Migrator => new Migrator($db, (string) $config->get('db.prefix', '')),
+
+    Db::class => static fn (PDO $db, Config $config): Db => new Db($db, (string) $config->get('db.prefix', '')),
+
+    SettingsRepository::class => static fn (Db $db): SettingsRepository => new SettingsRepository($db),
+    CourseRepository::class => static fn (Db $db): CourseRepository => new CourseRepository($db),
+    LessonRepository::class => static fn (Db $db): LessonRepository => new LessonRepository($db),
+    QuizRepository::class => static fn (Db $db): QuizRepository => new QuizRepository($db),
+    EnrollmentRepository::class => static fn (Db $db): EnrollmentRepository => new EnrollmentRepository($db),
+    ReviewRepository::class => static fn (Db $db): ReviewRepository => new ReviewRepository($db),
+    DemoSeeder::class => static fn (Db $db, SettingsRepository $s): DemoSeeder => new DemoSeeder($db, $s),
 
     LoggerInterface::class => static function (): LoggerInterface {
         $logger = new Logger('rvc');

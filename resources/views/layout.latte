@@ -17,19 +17,21 @@
     </script>
 </head>
 <body>
+{var $role = $user['role'] ?? 'student'}
+{var $rc = $reviewCount ?? 0}
 <div class="app">
     <header class="topbar">
-        <div class="brand">
+        <a href="{$base}/" class="brand">
             <div class="brand-mark">RV</div>
             <div class="brand-name">{$appName}</div>
-        </div>
+        </a>
         <div class="topbar-spacer"></div>
         <button type="button" class="btn btn-sm" onclick="rvcToggleTheme()" id="themeButton">โหมดมืด</button>
         <div class="who">
-            <div class="avatar">{mb_substr($user['full_name'], 0, 2)}</div>
-            <div>
-                {$user['full_name']}
-                <span class="text-muted">· {$user['role'] === 'admin' ? 'ผู้ดูแลระบบ' : ($user['role'] === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน')}</span>
+            <div class="avatar">{mb_substr($user['full_name'] ?? '?', 0, 2)}</div>
+            <div class="who-name">
+                {$user['full_name'] ?? 'ผู้ใช้'}
+                <span class="text-muted">· {$role === 'admin' ? 'ผู้ดูแลระบบ' : ($role === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน')}</span>
             </div>
         </div>
         <form method="post" action="{$base}/logout">
@@ -41,12 +43,29 @@
     <div class="shell">
         <nav class="sidebar">
             <a href="{$base}/dashboard" n:class="$page === 'dashboard' ? is-active"><span>⌂</span>หน้าแรก</a>
-            {if $user['role'] === 'admin'}
+
+            {if $role === 'teacher'}
+                <a href="{$base}/courses" n:class="$page === 'courses' ? is-active"><span>▤</span>รายวิชาของฉัน</a>
+                <a href="{$base}/review" n:class="$page === 'review' ? is-active">
+                    <span>✓</span>รอตรวจก่อนเผยแพร่
+                    {if $rc > 0}<span class="nav-badge">{$rc}</span>{/if}
+                </a>
+                <a href="{$base}/settings/ai" n:class="$page === 'settings' ? is-active"><span>✦</span>ผู้ช่วย AI ของฉัน</a>
+            {/if}
+
+            {if $role === 'student'}
+                <a href="{$base}/learn" n:class="$page === 'learn' ? is-active"><span>▤</span>วิชาที่เรียน</a>
+            {/if}
+
+            {if $role === 'admin'}
                 <div class="group-label">สำหรับผู้ดูแลระบบ</div>
+                <a href="{$base}/admin/ai" n:class="$page === 'admin-ai' ? is-active"><span>▣</span>เครื่อง AI และโควตา</a>
+                <a href="{$base}/admin/users" n:class="$page === 'admin-users' ? is-active"><span>◉</span>ผู้ใช้งาน</a>
                 <a href="{$base}/admin/migrations" n:class="$page === 'migrations' ? is-active"><span>▤</span>จัดการฐานข้อมูล</a>
             {/if}
+
             <div class="spacer"></div>
-            <div class="footnote">{$college}<br>รุ่น {$version}</div>
+            <div class="footnote">{$college}<br>{$term ?? ''}</div>
         </nav>
 
         <main class="content">
@@ -59,6 +78,10 @@
     </div>
 </div>
 
+{if isset($toast) && $toast}
+    <div class="toast" id="rvcToast">{$toast}</div>
+{/if}
+
 <script>
     function rvcToggleTheme() {
         var root = document.documentElement;
@@ -70,6 +93,10 @@
     if (document.documentElement.getAttribute('data-theme') === 'dark') {
         document.getElementById('themeButton').textContent = 'โหมดสว่าง';
     }
+    (function () {
+        var t = document.getElementById('rvcToast');
+        if (t) { setTimeout(function () { t.classList.add('is-out'); }, 2600); }
+    })();
 </script>
 </body>
 </html>

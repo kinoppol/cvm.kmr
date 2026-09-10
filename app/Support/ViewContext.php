@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Support;
+
+use App\Domain\ReviewRepository;
+use App\Domain\SettingsRepository;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface as Handler;
+
+/**
+ * เติมตัวแปรที่ทุกหน้าใน layout ต้องใช้ (ผู้ใช้ปัจจุบัน จำนวนรอตรวจ ชื่อภาคเรียน)
+ * ทำงานหลัง AuthMiddleware จึงมี attribute "user" เสมอ
+ */
+final class ViewContext implements MiddlewareInterface
+{
+    public function __construct(
+        private readonly View $view,
+        private readonly SettingsRepository $settings,
+        private readonly ReviewRepository $reviews,
+    ) {
+    }
+
+    public function process(Request $request, Handler $handler): Response
+    {
+        /** @var array<string,mixed>|null $user */
+        $user = $request->getAttribute('user');
+
+        $this->view->share('user', $user);
+        $this->view->share('term', $this->termLabel());
+
+        if (is_array($user) && ($user['role'] ?? '') === 'teacher') {
+            $this->view->share('reviewCount', $this->reviews->pendingCount((int) $user['id']));
+        }
+
+        return $handler->handle($request);
+    }
+
+    private function termLabel(): string
+    {
+        $year = $this->settings->int('academic_year');
+        $semester = $this->settings->int('semester');
+
+        return $year > 0 ? sprintf('ภาคเรียนที่ %d / %d', $semester, $year) : '';
+    }
+}
