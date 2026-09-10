@@ -10,9 +10,8 @@
     <div class="sub">ร่างที่ได้จะยังไม่เผยแพร่ให้นักเรียน จนกว่าครูจะตรวจและยืนยัน</div>
 
     {if $aiError}
-        <div class="alert alert-warning" style="margin-top:18px">
-            <span>△</span>
-            <div><strong>{$aiError['message']}</strong><br>ยังเปิดหน้านี้เพื่อตั้งค่าไว้ก่อนได้ เมื่อผู้ช่วยกลับมาจะเริ่มร่างได้ทันที</div>
+        <div style="margin-top:18px">
+            {include '../_partials/ai-state.latte', reason: $aiError['reason'], message: null}
         </div>
     {/if}
 

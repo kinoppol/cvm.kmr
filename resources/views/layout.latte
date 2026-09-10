@@ -76,6 +76,22 @@
             {include content}
         </main>
     </div>
+
+    <nav class="mobile-nav">
+        <a href="{$base}/dashboard" n:class="$page === 'dashboard' ? is-active"><span>⌂</span>หน้าแรก</a>
+        {if $role === 'teacher'}
+            <a href="{$base}/courses" n:class="$page === 'courses' ? is-active"><span>▤</span>รายวิชา</a>
+            <a href="{$base}/review" n:class="$page === 'review' ? is-active">
+                <span>✓{if $rc > 0}<i class="mobile-badge">{$rc}</i>{/if}</span>รอตรวจ
+            </a>
+            <a href="{$base}/settings/ai" n:class="$page === 'settings' ? is-active"><span>✦</span>ผู้ช่วย AI</a>
+        {elseif $role === 'student'}
+            <a href="{$base}/learn" n:class="$page === 'learn' ? is-active"><span>▤</span>วิชาที่เรียน</a>
+        {else}
+            <a href="{$base}/admin/ai" n:class="$page === 'admin-ai' ? is-active"><span>▣</span>เครื่อง AI</a>
+            <a href="{$base}/admin/users" n:class="$page === 'admin-users' ? is-active"><span>◉</span>ผู้ใช้</a>
+        {/if}
+    </nav>
 </div>
 
 {if isset($toast) && $toast}

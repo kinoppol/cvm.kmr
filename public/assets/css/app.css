@@ -327,6 +327,28 @@ dialog.modal .modal-foot {
     font: 500 11px/20px var(--mono); text-align: center;
 }
 
+/* ---------- เมนูล่างสำหรับมือถือ ---------- */
+.mobile-nav { display: none; }
+@media (max-width: 860px) {
+    .mobile-nav {
+        display: flex; position: sticky; bottom: 0; z-index: 40;
+        background: var(--surface); border-top: 1px solid var(--line);
+        height: 58px; align-items: stretch;
+    }
+    .mobile-nav a {
+        flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 3px; font: 500 10.5px/1.3 var(--sans); color: var(--ink3); text-decoration: none;
+    }
+    .mobile-nav a span { font-size: 17px; position: relative; }
+    .mobile-nav a.is-active { color: var(--brand); }
+    .mobile-badge {
+        position: absolute; top: -4px; left: 12px; min-width: 15px; height: 15px; padding: 0 3px;
+        border-radius: 8px; background: var(--warn); color: #fff;
+        font: 500 9px/15px var(--mono); font-style: normal; text-align: center;
+    }
+    .content { padding-bottom: 24px; }
+}
+
 /* ---------- toast ---------- */
 .toast {
     position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
@@ -511,6 +533,12 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
 .plan-doc-title { font: 600 16px/1.4 var(--sans); }
 .plan-doc-sub { font-size: 13px; color: var(--ink2); margin-top: 4px; }
 .plan-doc-foot { padding-top: 16px; display: flex; justify-content: space-between; font-size: 13px; color: var(--ink3); }
+
+/* ---------- การ์ดสถานะ AI ---------- */
+.ai-state-top { display: flex; gap: 12px; align-items: flex-start; }
+.ai-state-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; }
+.ai-state-title { font: 600 16px/1.4 var(--sans); }
+.ai-state-body { font-size: 13.5px; color: var(--ink2); margin-top: 7px; line-height: 1.7; }
 
 /* ---------- แดชบอร์ดผู้ดูแล AI ---------- */
 .admin-grid { margin-top: 22px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
