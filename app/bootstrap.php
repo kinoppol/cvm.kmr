@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\AI\AiRouter;
+use App\AI\KeyCipher;
+use App\AI\QuizGenerator;
 use App\Auth\Auth;
+use App\Domain\AiRepository;
 use App\Domain\CourseRepository;
 use App\Domain\EnrollmentRepository;
 use App\Domain\LessonRepository;
@@ -51,6 +55,11 @@ $builder->addDefinitions([
     EnrollmentRepository::class => static fn (Db $db): EnrollmentRepository => new EnrollmentRepository($db),
     ReviewRepository::class => static fn (Db $db): ReviewRepository => new ReviewRepository($db),
     DemoSeeder::class => static fn (Db $db, SettingsRepository $s): DemoSeeder => new DemoSeeder($db, $s),
+
+    AiRepository::class => static fn (Db $db): AiRepository => new AiRepository($db),
+    KeyCipher::class => static fn (Config $config): KeyCipher => new KeyCipher((string) $config->get('app.key', '')),
+    AiRouter::class => static fn (AiRepository $ai, SettingsRepository $s, KeyCipher $c): AiRouter => new AiRouter($ai, $s, $c),
+    QuizGenerator::class => static fn (): QuizGenerator => new QuizGenerator(),
 
     LoggerInterface::class => static function (): LoggerInterface {
         $logger = new Logger('rvc');
