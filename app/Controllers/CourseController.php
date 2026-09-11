@@ -6,8 +6,7 @@ namespace App\Controllers;
 
 use App\Domain\CourseRepository;
 use App\Domain\EnrollmentRepository;
-use App\Domain\LessonRepository;
-use App\Domain\QuizRepository;
+use App\Domain\UnitRepository;
 use App\Support\Csrf;
 use App\Support\Db;
 use App\Support\Flash;
@@ -21,13 +20,12 @@ use Slim\Exception\HttpNotFoundException;
 
 final class CourseController
 {
-    private const TABS = ['lessons', 'quizzes', 'students', 'scores'];
+    private const TABS = ['units', 'students', 'scores'];
 
     public function __construct(
         private readonly View $view,
         private readonly CourseRepository $courses,
-        private readonly LessonRepository $lessons,
-        private readonly QuizRepository $quizzes,
+        private readonly UnitRepository $units,
         private readonly EnrollmentRepository $enrollments,
         private readonly Db $db,
     ) {
@@ -180,9 +178,9 @@ final class CourseController
         $user = $request->getAttribute('user');
         $course = $this->requireOwnedCourse($request, (int) $args['id'], (int) $user['id']);
 
-        $tab = (string) ($request->getQueryParams()['tab'] ?? 'lessons');
+        $tab = (string) ($request->getQueryParams()['tab'] ?? 'units');
         if (!in_array($tab, self::TABS, true)) {
-            $tab = 'lessons';
+            $tab = 'units';
         }
 
         $data = [
@@ -192,11 +190,10 @@ final class CourseController
         ];
 
         $data += match ($tab) {
-            'lessons' => ['lessons' => $this->decorateLessons($this->lessons->forCourse($course['id']))],
-            'quizzes' => ['quizzes' => $this->decorateQuizzes($this->quizzes->forCourse($course['id']))],
+            'units'    => ['units' => $this->decorateUnits($this->units->forCourse($course['id']))],
             'students' => ['students' => $this->enrollments->studentsInCourse($course['id'])],
-            'scores' => $this->scoreBoard($course['id']),
-            default => [],
+            'scores'   => $this->scoreBoard($course['id']),
+            default    => [],
         };
 
         return $this->view->render($response, 'courses/show', $data);
@@ -216,54 +213,34 @@ final class CourseController
         return $course;
     }
 
-    /** @param list<array<string,mixed>> $lessons @return list<array<string,mixed>> */
-    private function decorateLessons(array $lessons): array
+    /** @param list<array<string,mixed>> $units @return list<array<string,mixed>> */
+    private function decorateUnits(array $units): array
     {
-        foreach ($lessons as $i => $l) {
-            [$tag, $kind] = match ($l['review_status']) {
+        foreach ($units as $i => $u) {
+            [$tag, $kind] = match ($u['review_status']) {
                 'published' => ['เผยแพร่แล้ว', 'ok'],
-                'pending' => ['รอครูตรวจ', 'warn'],
-                default => ['ฉบับร่าง', 'muted'],
+                'pending'   => ['รอครูตรวจ', 'warn'],
+                default     => ['ฉบับร่าง', 'muted'],
             };
-            $lessons[$i]['no'] = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
-            $lessons[$i]['tag'] = $tag;
-            $lessons[$i]['tag_kind'] = $kind;
-            $lessons[$i]['meta'] = $l['source'] === 'ai' ? 'ร่างโดยผู้ช่วย AI' : ($l['attachment_count'] > 0
-                ? sprintf('ใบความรู้ %d ไฟล์', $l['attachment_count'])
-                : 'ยังไม่มีไฟล์ประกอบ');
+            $units[$i]['no']       = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
+            $units[$i]['tag']      = $tag;
+            $units[$i]['tag_kind'] = $kind;
+            $parts = [];
+            if ((int) $u['has_pretest'])   $parts[] = 'แบบทดสอบก่อนเรียน';
+            if ((int) $u['section_count']) $parts[] = sprintf('เนื้อหา %d ส่วน', $u['section_count']);
+            if ((int) $u['has_assignment']) $parts[] = 'ใบงาน';
+            if ((int) $u['has_posttest'])  $parts[] = 'แบบทดสอบหลังเรียน';
+            $units[$i]['meta'] = $parts ? implode(' · ', $parts) : 'ยังไม่มีเนื้อหา';
         }
 
-        return $lessons;
-    }
-
-    /** @param list<array<string,mixed>> $quizzes @return list<array<string,mixed>> */
-    private function decorateQuizzes(array $quizzes): array
-    {
-        foreach ($quizzes as $i => $q) {
-            [$tag, $kind] = match ($q['review_status']) {
-                'published' => ['เผยแพร่แล้ว', 'ok'],
-                'pending' => ['รอครูตรวจ', 'warn'],
-                default => ['ฉบับร่าง', 'muted'],
-            };
-            $quizzes[$i]['tag'] = $tag;
-            $quizzes[$i]['tag_kind'] = $kind;
-            $quizzes[$i]['time'] = Thai::ago($q['created_at']);
-            $quizzes[$i]['meta'] = sprintf(
-                '%d ข้อ%s · ส่งแล้ว %d คน',
-                $q['question_count'],
-                $q['time_limit_minutes'] ? ' · เวลา ' . $q['time_limit_minutes'] . ' นาที' : '',
-                $q['submitted_count']
-            );
-        }
-
-        return $quizzes;
+        return $units;
     }
 
     /** @return array{scoreQuizzes:list<array<string,mixed>>,scoreRows:list<array<string,mixed>>} */
     private function scoreBoard(int $courseId): array
     {
         $quizzes = $this->db->all(
-            'SELECT id, title FROM {quizzes} WHERE course_id = ? AND review_status = \'published\' ORDER BY created_at',
+            "SELECT id, title FROM {quizzes} WHERE course_id = ? AND kind = 'posttest' AND review_status = 'published' ORDER BY created_at",
             [$courseId]
         );
         $students = $this->enrollments->studentsInCourse($courseId);

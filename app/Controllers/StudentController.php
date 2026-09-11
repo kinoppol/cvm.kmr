@@ -6,7 +6,7 @@ namespace App\Controllers;
 
 use App\Domain\AttemptRepository;
 use App\Domain\EnrollmentRepository;
-use App\Domain\LessonRepository;
+use App\Domain\UnitRepository;
 use App\Domain\QuizRepository;
 use App\Support\Csrf;
 use App\Support\Db;
@@ -27,7 +27,7 @@ final class StudentController
     public function __construct(
         private readonly View $view,
         private readonly EnrollmentRepository $enrollments,
-        private readonly LessonRepository $lessons,
+        private readonly UnitRepository $units,
         private readonly QuizRepository $quizzes,
         private readonly AttemptRepository $attempts,
         private readonly Db $db,
@@ -53,49 +53,34 @@ final class StudentController
 
         $course = $this->db->first('SELECT c.*, u.full_name AS teacher_name FROM {courses} c LEFT JOIN {users} u ON u.id = c.teacher_id WHERE c.id = ?', [$courseId]);
 
-        $lessons = array_values(array_filter(
-            $this->lessons->forCourse($courseId),
-            static fn (array $l): bool => $l['review_status'] === 'published'
+        $units = array_values(array_filter(
+            $this->units->forCourse($courseId),
+            static fn (array $u): bool => $u['review_status'] === 'published'
         ));
-
-        $quizzes = [];
-        foreach ($this->quizzes->forCourse($courseId) as $q) {
-            if ($q['review_status'] !== 'published') {
-                continue;
-            }
-            $best = $this->attempts->bestScore((int) $q['id'], (int) $user['id']);
-            $active = $this->attempts->inProgress((int) $q['id'], (int) $user['id']);
-            $quizzes[] = $q + [
-                'best' => $best,
-                'active_attempt' => $active['id'] ?? null,
-                'status_label' => $active ? 'กำลังทำอยู่' : ($best !== null ? sprintf('ได้ %s คะแนน', rtrim(rtrim((string) $best, '0'), '.')) : 'ยังไม่ได้ทำ'),
-            ];
-        }
 
         return $this->view->render($response, 'learn/course', [
             'page' => 'learn',
             'course' => $course,
-            'lessons' => $lessons,
-            'quizzes' => $quizzes,
+            'units' => $units,
         ]);
     }
 
-    public function lesson(Request $request, Response $response, array $args): Response
+    public function unit(Request $request, Response $response, array $args): Response
     {
         $user = $request->getAttribute('user');
-        $lesson = $this->lessons->find((int) $args['id']);
-        if ($lesson === null || $lesson['review_status'] !== 'published') {
-            throw new HttpNotFoundException($request, 'ไม่พบบทเรียนนี้');
+        $unit = $this->units->find((int) $args['id']);
+        if ($unit === null || $unit['review_status'] !== 'published') {
+            throw new HttpNotFoundException($request, 'ไม่พบหน่วยการเรียนนี้');
         }
-        $this->requireEnrolled($request, (int) $lesson['course_id'], (int) $user['id']);
-        $course = $this->db->first('SELECT * FROM {courses} WHERE id = ?', [(int) $lesson['course_id']]);
-        $files = $this->db->all('SELECT * FROM {lesson_attachments} WHERE lesson_id = ?', [(int) $lesson['id']]);
+        $this->requireEnrolled($request, (int) $unit['course_id'], (int) $user['id']);
+        $course = $this->db->first('SELECT * FROM {courses} WHERE id = ?', [(int) $unit['course_id']]);
+        $sections = $this->units->sectionsFor((int) $unit['id']);
 
-        return $this->view->render($response, 'learn/lesson', [
+        return $this->view->render($response, 'learn/unit', [
             'page' => 'learn',
             'course' => $course,
-            'lesson' => $lesson,
-            'files' => $files,
+            'unit' => $unit,
+            'sections' => $sections,
         ]);
     }
 

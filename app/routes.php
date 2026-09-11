@@ -15,7 +15,7 @@ use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
 use App\Controllers\ImpersonationController;
 use App\Controllers\LandingController;
-use App\Controllers\LessonController;
+use App\Controllers\UnitController;
 use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
 use App\Controllers\RegisterController;
@@ -64,9 +64,11 @@ return static function (App $app): void {
             $t->get('/{id:[0-9]+}/edit', [CourseController::class, 'edit']);
             $t->post('/{id:[0-9]+}', [CourseController::class, 'save']);
             $t->post('/{id:[0-9]+}/archive', [CourseController::class, 'archive']);
-            $t->get('/{courseId:[0-9]+}/lessons/new', [LessonController::class, 'edit']);
-            $t->get('/{courseId:[0-9]+}/lessons/{id:[0-9]+}/edit', [LessonController::class, 'edit']);
-            $t->post('/{courseId:[0-9]+}/lessons[/{id:[0-9]+}]', [LessonController::class, 'save']);
+            $t->get('/{courseId:[0-9]+}/units/new', [UnitController::class, 'edit']);
+            $t->get('/{courseId:[0-9]+}/units/{id:[0-9]+}/edit', [UnitController::class, 'edit']);
+            $t->post('/{courseId:[0-9]+}/units[/{id:[0-9]+}]', [UnitController::class, 'save']);
+            $t->post('/{courseId:[0-9]+}/units/{id:[0-9]+}/sections', [UnitController::class, 'addSection']);
+            $t->post('/{courseId:[0-9]+}/units/{id:[0-9]+}/sections/{sectionId:[0-9]+}/delete', [UnitController::class, 'deleteSection']);
 
             $t->get('/{courseId:[0-9]+}/quizzes/create', [QuizWizardController::class, 'create']);
             $t->get('/{courseId:[0-9]+}/quizzes/workspace', [QuizWizardController::class, 'workspace']);
@@ -89,7 +91,7 @@ return static function (App $app): void {
         $group->group('/learn', function (RouteCollectorProxy $s): void {
             $s->get('', [StudentController::class, 'courses'])->setName('learn');
             $s->get('/{courseId:[0-9]+}', [StudentController::class, 'course']);
-            $s->get('/lessons/{id:[0-9]+}', [StudentController::class, 'lesson']);
+            $s->get('/units/{id:[0-9]+}', [StudentController::class, 'unit']);
             $s->post('/quizzes/{quizId:[0-9]+}/start', [StudentController::class, 'startQuiz']);
             $s->get('/attempts/{attemptId:[0-9]+}', [StudentController::class, 'take']);
             $s->post('/attempts/{attemptId:[0-9]+}/answer', [StudentController::class, 'answer']);

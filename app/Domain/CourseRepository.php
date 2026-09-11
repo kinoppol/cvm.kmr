@@ -27,8 +27,7 @@ final class CourseRepository
         $rows = $this->db->all(
             'SELECT c.*, cr.name AS classroom_name,
                     (SELECT COUNT(*) FROM {enrollments} e WHERE e.course_id = c.id AND e.status = \'active\') AS student_count,
-                    (SELECT COUNT(*) FROM {lessons} l WHERE l.course_id = c.id) AS lesson_count,
-                    (SELECT COUNT(*) FROM {quizzes} q WHERE q.course_id = c.id) AS quiz_count
+                    (SELECT COUNT(*) FROM {units} u WHERE u.course_id = c.id) AS unit_count
              FROM {courses} c
              LEFT JOIN {classrooms} cr ON cr.id = c.classroom_id
              WHERE c.teacher_id = ? AND c.status = \'active\'
@@ -49,8 +48,7 @@ final class CourseRepository
         return $this->db->first(
             'SELECT c.*, cr.name AS classroom_name,
                     (SELECT COUNT(*) FROM {enrollments} e WHERE e.course_id = c.id AND e.status = \'active\') AS student_count,
-                    (SELECT COUNT(*) FROM {lessons} l WHERE l.course_id = c.id) AS lesson_count,
-                    (SELECT COUNT(*) FROM {quizzes} q WHERE q.course_id = c.id) AS quiz_count
+                    (SELECT COUNT(*) FROM {units} u WHERE u.course_id = c.id) AS unit_count
              FROM {courses} c
              LEFT JOIN {classrooms} cr ON cr.id = c.classroom_id
              WHERE c.id = ?',
@@ -164,7 +162,7 @@ final class CourseRepository
                     d.name AS department_name,
                     u.full_name AS teacher_name,
                     (SELECT COUNT(*) FROM {enrollments} e WHERE e.course_id = c.id AND e.status = \'active\') AS student_count,
-                    (SELECT COUNT(*) FROM {lessons} l WHERE l.course_id = c.id AND l.review_status = \'published\') AS lesson_count
+                    (SELECT COUNT(*) FROM {units} u2 WHERE u2.course_id = c.id AND u2.review_status = \'published\') AS unit_count
              FROM {courses} c
              LEFT JOIN {classrooms} cr ON cr.id = c.classroom_id
              LEFT JOIN {departments} d ON d.id = cr.department_id

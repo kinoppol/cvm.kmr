@@ -11,7 +11,7 @@
                     <div class="course-head-code">{$course['code']} · {$course['classroom_name'] ?? 'ยังไม่ระบุกลุ่มเรียน'}</div>
                     <h1>{$course['name']}</h1>
                     <div class="course-head-stats">
-                        {$course['student_count']} นักเรียน · {$course['lesson_count']} บทเรียน · แบบทดสอบ {$course['quiz_count']} ชุด
+                        {$course['student_count']} นักเรียน · {$course['unit_count']} หน่วยการเรียน
                     </div>
                 </div>
                 <a class="btn" href="{$base}/courses/{$course['id']}/edit" style="align-self:center">แก้ไขรายวิชา</a>
@@ -21,8 +21,8 @@
                     </button>
                     <div class="ai-menu-panel" hidden>
                         <a href="{$base}/courses/{$course['id']}/quizzes/create">
-                            <div class="t">ออกข้อสอบจากบทเรียน</div>
-                            <div class="d">เลือกบทเรียนแล้วให้ร่างข้อสอบให้</div>
+                            <div class="t">ออกข้อสอบจากหน่วยการเรียน</div>
+                            <div class="d">เลือกหน่วยแล้วให้ร่างข้อสอบให้</div>
                         </a>
                         <a href="{$base}/courses/{$course['id']}/lesson-plan">
                             <div class="t">ทำแผนการจัดการเรียนรู้</div>
@@ -34,7 +34,7 @@
             </div>
 
             <div class="tabs">
-                {var $tabs = ['lessons' => 'เนื้อหาบทเรียน', 'quizzes' => 'แบบทดสอบ', 'students' => 'นักเรียน', 'scores' => 'คะแนน']}
+                {var $tabs = ['units' => 'หน่วยการเรียน', 'students' => 'นักเรียน', 'scores' => 'คะแนน']}
                 {foreach $tabs as $key => $label}
                     <a href="{$base}/courses/{$course['id']}?tab={$key}" n:class="tab, $tab === $key ? is-active">{$label}</a>
                 {/foreach}
@@ -42,39 +42,24 @@
         </div>
     </div>
 
-    <div class="course-body">
-        {if $tab === 'lessons'}
-            <div class="list">
-                {foreach $lessons as $l}
-                    <div class="list-row">
-                        <div class="list-no">{$l['no']}</div>
-                        <div class="list-main">
-                            <div class="list-title">{$l['title']}</div>
-                            <div class="list-meta">{$l['meta']}</div>
+    <div class=”course-body”>
+        {if $tab === 'units'}
+            <div class=”list”>
+                {foreach $units as $u}
+                    <div class=”list-row”>
+                        <div class=”list-no”>{$u['no']}</div>
+                        <div class=”list-main”>
+                            <div class=”list-title”>{$u['title']}</div>
+                            <div class=”list-meta”>{$u['meta']}</div>
                         </div>
-                        <span class="tag tag-{$l['tag_kind']}">{$l['tag']}</span>
-                        <a class="btn btn-sm" href="{$base}/courses/{$course['id']}/lessons/{$l['id']}/edit">แก้ไข</a>
+                        <span class=”tag tag-{$u['tag_kind']}”>{$u['tag']}</span>
+                        <a class=”btn btn-sm” href=”{$base}/courses/{$course['id']}/units/{$u['id']}/edit”>แก้ไข</a>
                     </div>
                 {/foreach}
-                {if !$lessons}<div class="empty"><h3>ยังไม่มีบทเรียน</h3><p>กดปุ่มด้านล่างเพื่อเพิ่มบทเรียนแรก</p></div>{/if}
+                {if !$units}<div class=”empty”><h3>ยังไม่มีหน่วยการเรียน</h3><p>กดปุ่มด้านล่างเพื่อเพิ่มหน่วยการเรียนแรก</p></div>{/if}
             </div>
-            <div class="list-actions">
-                <a class="btn" href="{$base}/courses/{$course['id']}/lessons/new">+ เพิ่มบทเรียน</a>
-            </div>
-
-        {elseif $tab === 'quizzes'}
-            <div class="list">
-                {foreach $quizzes as $q}
-                    <div class="list-row">
-                        <div class="list-main">
-                            <div class="list-title">{$q['title']}</div>
-                            <div class="list-meta">{$q['meta']}</div>
-                        </div>
-                        <span class="tag tag-{$q['tag_kind']}">{$q['tag']}</span>
-                        <div class="list-when">{$q['time']}</div>
-                    </div>
-                {/foreach}
-                {if !$quizzes}<div class="empty"><h3>ยังไม่มีแบบทดสอบ</h3><p>ใช้เมนู “ให้ AI ช่วย” เพื่อร่างข้อสอบจากบทเรียน</p></div>{/if}
+            <div class=”list-actions”>
+                <a class=”btn” href=”{$base}/courses/{$course['id']}/units/new”>+ เพิ่มหน่วยการเรียน</a>
             </div>
 
         {elseif $tab === 'students'}

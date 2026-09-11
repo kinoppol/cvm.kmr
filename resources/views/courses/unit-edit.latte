@@ -1,0 +1,195 @@
+{layout '../layout.latte'}
+
+{block title}{if $unit}แก้ไข{else}เพิ่ม{/if}หน่วยการเรียน · {$course['name']}{/block}
+
+{block content}
+<div class="page-head">
+    <div>
+        <div class="sub"><a href="{$base}/courses/{$course['id']}?tab=units">{$course['name']}</a></div>
+        <h1>{if $unit}{$unit['title']}{else}หน่วยการเรียนใหม่{/if}</h1>
+    </div>
+</div>
+
+{* ── ฟอร์มข้อมูลหน่วย ── *}
+<div class="card" style="margin-bottom:16px">
+    <div class="card-head">บทนำหน่วยการเรียน</div>
+    <form method="post" action="{$base}/courses/{$course['id']}/units{if $unit}/{$unit['id']}{/if}">
+        <input type="hidden" name="_token" value="{$csrf}">
+
+        <div class="field">
+            <label for="title">ชื่อหน่วยการเรียน <span class="required">*</span></label>
+            <input class="input" type="text" id="title" name="title"
+                   value="{$unit['title'] ?? ''}" required autofocus>
+        </div>
+
+        <div class="field">
+            <label for="key_content">สาระสำคัญ</label>
+            <textarea class="input" id="key_content" name="key_content" rows="3"
+                      placeholder="ระบุสาระสำคัญของหน่วยการเรียนนี้...">{$unit['key_content'] ?? ''}</textarea>
+        </div>
+
+        <div class="field">
+            <label for="objectives">วัตถุประสงค์การเรียนรู้</label>
+            <textarea class="input" id="objectives" name="objectives" rows="4"
+                      placeholder="เมื่อเรียนจบหน่วยนี้แล้ว นักเรียนจะสามารถ...&#10;1. ...&#10;2. ...">{$unit['objectives'] ?? ''}</textarea>
+        </div>
+
+        <div class="field">
+            <label for="competencies">สมรรถนะประจำหน่วย</label>
+            <textarea class="input" id="competencies" name="competencies" rows="3"
+                      placeholder="ระบุสมรรถนะที่คาดหวังให้ผู้เรียนมีหลังเรียนจบหน่วยนี้...">{$unit['competencies'] ?? ''}</textarea>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="submit" name="action" value="save" class="btn btn-primary">บันทึกฉบับร่าง</button>
+            <button type="submit" name="action" value="publish" class="btn">เผยแพร่</button>
+            <a href="{$base}/courses/{$course['id']}?tab=units" class="btn btn-ghost">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+
+{if $unit}
+{* ── ส่วนเนื้อหา ── *}
+<div class="card" style="margin-bottom:16px">
+    <div class="card-head">เนื้อหา</div>
+
+    {if $sections}
+        <div class="list" style="margin-bottom:0">
+            {foreach $sections as $s}
+                <div class="list-row">
+                    <div class="list-main">
+                        <div class="list-title">
+                            {if $s['type'] === 'video'}📹 {elseif $s['type'] === 'pdf'}📄 {else}📝 {/if}
+                            {$s['title']}
+                        </div>
+                        <div class="list-meta mono" style="font-size:12px">
+                            {if $s['type'] === 'video'}{$s['video_url']|truncate:60}
+                            {elseif $s['type'] === 'pdf'}{$s['file_name'] ?? $s['file_path']}
+                            {else}เนื้อหาข้อความ{/if}
+                        </div>
+                    </div>
+                    <span class="tag tag-muted">{$s['type']}</span>
+                    <form method="post" action="{$base}/courses/{$course['id']}/units/{$unit['id']}/sections/{$s['id']}/delete"
+                          onsubmit="return confirm('ลบส่วนนี้?')" style="display:inline">
+                        <input type="hidden" name="_token" value="{$csrf}">
+                        <button type="submit" class="btn btn-sm btn-ghost-danger">ลบ</button>
+                    </form>
+                </div>
+            {/foreach}
+        </div>
+    {else}
+        <p class="sub" style="padding:16px 0 0">ยังไม่มีเนื้อหา เพิ่มส่วนเนื้อหาด้านล่าง</p>
+    {/if}
+
+    {* ── เพิ่มส่วนเนื้อหา ── *}
+    <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:12px">เพิ่มส่วนเนื้อหา</div>
+        <div class="tabs" style="margin-bottom:16px" id="sectionTypeTabs">
+            <a class="tab is-active" data-section-tab="text" href="#">📝 ข้อความ</a>
+            <a class="tab" data-section-tab="video" href="#">📹 วีดิโอ</a>
+            <a class="tab" data-section-tab="pdf" href="#">📄 PDF</a>
+        </div>
+
+        {* TEXT *}
+        <form method="post" action="{$base}/courses/{$course['id']}/units/{$unit['id']}/sections"
+              id="sectionForm-text" class="section-form">
+            <input type="hidden" name="_token" value="{$csrf}">
+            <input type="hidden" name="type" value="text">
+            <div class="field">
+                <label>ชื่อส่วน (ไม่บังคับ)</label>
+                <input class="input" type="text" name="title" placeholder="เช่น บทนำ, ทฤษฎีพื้นฐาน">
+            </div>
+            <div class="field">
+                <label>เนื้อหา</label>
+                <textarea class="input" name="content" rows="6" placeholder="พิมพ์เนื้อหาที่นี่..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">เพิ่มส่วนข้อความ</button>
+        </form>
+
+        {* VIDEO *}
+        <form method="post" action="{$base}/courses/{$course['id']}/units/{$unit['id']}/sections"
+              id="sectionForm-video" class="section-form" hidden>
+            <input type="hidden" name="_token" value="{$csrf}">
+            <input type="hidden" name="type" value="video">
+            <div class="field">
+                <label>ชื่อส่วน (ไม่บังคับ)</label>
+                <input class="input" type="text" name="title" placeholder="เช่น วีดิโอแนะนำ">
+            </div>
+            <div class="field">
+                <label>URL วีดิโอ <span class="required">*</span></label>
+                <input class="input" type="url" name="video_url"
+                       placeholder="https://www.youtube.com/watch?v=..." required>
+                <div class="hint">รองรับ YouTube, Google Drive และลิงก์วีดิโอทั่วไป</div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">เพิ่มส่วนวีดิโอ</button>
+        </form>
+
+        {* PDF *}
+        <form method="post" action="{$base}/courses/{$course['id']}/units/{$unit['id']}/sections"
+              enctype="multipart/form-data" id="sectionForm-pdf" class="section-form" hidden>
+            <input type="hidden" name="_token" value="{$csrf}">
+            <input type="hidden" name="type" value="pdf">
+            <div class="field">
+                <label>ชื่อส่วน (ไม่บังคับ)</label>
+                <input class="input" type="text" name="title" placeholder="เช่น ใบความรู้ที่ 1">
+            </div>
+            <div class="field">
+                <label>ไฟล์ PDF <span class="required">*</span></label>
+                <input class="input" type="file" name="pdf_file" accept=".pdf,application/pdf" required>
+                <div class="hint">ขนาดไม่เกิน 30 MB</div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">อัปโหลด PDF</button>
+        </form>
+    </div>
+</div>
+
+{* ── แบบทดสอบและใบงาน ── *}
+<div class="card">
+    <div class="card-head">แบบทดสอบและใบงาน</div>
+    <div class="list" style="margin-bottom:0">
+        <div class="list-row">
+            <div class="list-main">
+                <div class="list-title">แบบทดสอบก่อนเรียน</div>
+                <div class="list-meta">10 ข้อ · ปรนัย · ไม่คิดคะแนน ใช้วัดความก้าวหน้า</div>
+            </div>
+            <a class="btn btn-sm" href="{$base}/courses/{$course['id']}/quizzes/create?unit_id={$unit['id']}&kind=pretest">
+                สร้างด้วย AI
+            </a>
+        </div>
+        <div class="list-row">
+            <div class="list-main">
+                <div class="list-title">ใบงาน</div>
+                <div class="list-meta">มอบหมายงานให้นักเรียนส่งและครูตรวจให้คะแนน</div>
+            </div>
+            <a class="btn btn-sm" href="#">เพิ่มใบงาน</a>
+        </div>
+        <div class="list-row">
+            <div class="list-main">
+                <div class="list-title">แบบทดสอบหลังเรียน</div>
+                <div class="list-meta">10 ข้อ · ปรนัย · คิดคะแนนเปรียบเทียบกับเกณฑ์รายวิชา</div>
+            </div>
+            <a class="btn btn-sm" href="{$base}/courses/{$course['id']}/quizzes/create?unit_id={$unit['id']}&kind=posttest">
+                สร้างด้วย AI
+            </a>
+        </div>
+    </div>
+</div>
+{/if}
+
+<script>
+(function () {
+    var tabs = document.querySelectorAll('[data-section-tab]');
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function (e) {
+            e.preventDefault();
+            var type = this.getAttribute('data-section-tab');
+            tabs.forEach(function (t) { t.classList.remove('is-active'); });
+            this.classList.add('is-active');
+            document.querySelectorAll('.section-form').forEach(function (f) { f.hidden = true; });
+            var form = document.getElementById('sectionForm-' + type);
+            if (form) form.hidden = false;
+        });
+    });
+})();
+</script>
+{/block}

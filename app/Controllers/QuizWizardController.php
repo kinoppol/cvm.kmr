@@ -10,7 +10,7 @@ use App\AI\QuizGenerator;
 use App\Auth\Auth;
 use App\Domain\AiRepository;
 use App\Domain\CourseRepository;
-use App\Domain\LessonRepository;
+use App\Domain\UnitRepository;
 use App\Domain\QuizRepository;
 use App\Domain\ReviewRepository;
 use App\Domain\SettingsRepository;
@@ -41,7 +41,7 @@ final class QuizWizardController
     public function __construct(
         private readonly View $view,
         private readonly CourseRepository $courses,
-        private readonly LessonRepository $lessons,
+        private readonly UnitRepository $units,
         private readonly QuizRepository $quizzes,
         private readonly ReviewRepository $reviews,
         private readonly AiRepository $ai,
@@ -56,14 +56,17 @@ final class QuizWizardController
     {
         $user = $request->getAttribute('user');
         $course = $this->ownedCourse($request, (int) $args['courseId'], (int) $user['id']);
-        $lessons = $this->lessons->forCourse($course['id']);
+        $units = $this->units->forCourse($course['id']);
+        $q = $request->getQueryParams();
 
         $route = $this->tryRoute((int) $user['id']);
 
         return $this->view->render($response, 'quiz/create', [
             'page' => 'courses',
             'course' => $course,
-            'lessons' => $lessons,
+            'units' => $units,
+            'preselectedUnitId' => isset($q['unit_id']) ? (int) $q['unit_id'] : null,
+            'preselectedKind' => $q['kind'] ?? 'posttest',
             'countOptions' => self::COUNT_OPTIONS,
             'typeOptions' => self::TYPE_OPTIONS,
             'levels' => self::LEVELS,
@@ -79,8 +82,8 @@ final class QuizWizardController
         $course = $this->ownedCourse($request, (int) $args['courseId'], (int) $user['id']);
         $params = $this->readParams($request, $course);
 
-        if ($params['lessonTitles'] === [] || $params['types'] === []) {
-            Flash::error('กรุณาเลือกบทเรียนและชนิดข้อสอบอย่างน้อยหนึ่งอย่าง');
+        if ($params['unitTitles'] === [] || $params['types'] === []) {
+            Flash::error('กรุณาเลือกหน่วยการเรียนและชนิดข้อสอบอย่างน้อยหนึ่งอย่าง');
 
             return $this->redirect($response, "/courses/{$course['id']}/quizzes/create");
         }
@@ -151,7 +154,7 @@ final class QuizWizardController
             foreach ($this->generator->stream($route, [
                 'course_code' => $course['code'],
                 'course_name' => $course['name'],
-                'lesson_titles' => $params['lessonTitles'],
+                'lesson_titles' => $params['unitTitles'],
                 'count' => $params['count'],
                 'types' => $params['types'],
                 'level' => $params['level'],
@@ -212,13 +215,16 @@ final class QuizWizardController
         if (isset($genPayload['params'])) {
             $p = $genPayload['params'];
             $qs = [];
-            foreach ($p['lessons'] ?? [] as $id) {
-                $qs[] = 'lessons=' . (int) $id;
+            if (!empty($p['unit_id'])) {
+                $qs[] = 'unit_id=' . (int) $p['unit_id'];
+            }
+            if (!empty($p['kind'])) {
+                $qs[] = 'kind=' . rawurlencode($p['kind']);
             }
             foreach ($p['types'] ?? [] as $t) {
                 $qs[] = 'types=' . rawurlencode($t);
             }
-            $qs[] = 'count=' . (int) ($p['count'] ?? 8);
+            $qs[] = 'count=' . (int) ($p['count'] ?? 10);
             $qs[] = 'level=' . rawurlencode((string) ($p['level'] ?? 'กลาง'));
             $regenQuery = implode('&', $qs);
         }
@@ -264,7 +270,7 @@ final class QuizWizardController
         foreach ($this->generator->stream($route, [
             'course_code' => $course['code'],
             'course_name' => $course['name'],
-            'lesson_titles' => $params['lessonTitles'] ?? [],
+            'lesson_titles' => $params['unitTitles'] ?? [],
             'count' => 3,
             'types' => [$question['type'] === 'short_answer' ? 'อัตนัย' : 'ปรนัย'],
             'level' => $params['level'] ?? 'กลาง',
@@ -322,9 +328,9 @@ final class QuizWizardController
         $this->auth->log($publish ? 'quiz.publish' : 'quiz.draft', 'quiz#' . $quiz['id']);
 
         if ($publish) {
-            Flash::success('บันทึกเป็นแบบทดสอบแล้ว · ตั้งเวลาเปิดให้นักเรียนได้ในแท็บแบบทดสอบ');
+            Flash::success('บันทึกเป็นแบบทดสอบแล้ว');
 
-            return $this->redirect($response, "/courses/{$course['id']}?tab=quizzes");
+            return $this->redirect($response, "/courses/{$course['id']}?tab=units");
         }
 
         Flash::success('เก็บไว้ในรายการรอตรวจแล้ว');
@@ -352,9 +358,10 @@ final class QuizWizardController
 
     private function persist(array $course, array $params, array $questions, int $userId, int $jobId, string $source, int $durationMs): int
     {
-        $title = sprintf('ร่างข้อสอบ · %s%s', $course['name'], $this->lessonRange($params['lessonTitles']));
+        $kindLabel = $params['kind'] === 'pretest' ? 'แบบทดสอบก่อนเรียน' : 'แบบทดสอบหลังเรียน';
+        $title = sprintf('%s · %s%s', $kindLabel, $course['name'], $this->unitRange($params['unitTitles']));
 
-        $quizId = $this->quizzes->createWithQuestions([
+        $quizFields = [
             'course_id' => $course['id'],
             'title' => $title,
             'instructions' => null,
@@ -362,7 +369,13 @@ final class QuizWizardController
             'source' => 'ai',
             'review_status' => 'draft',
             'created_by' => $userId,
-        ], array_map(static fn (array $q): array => $q + ['source' => 'ai'], $questions));
+            'kind' => $params['kind'],
+        ];
+        if ($params['unit_id'] !== null) {
+            $quizFields['unit_id'] = $params['unit_id'];
+        }
+
+        $quizId = $this->quizzes->createWithQuestions($quizFields, array_map(static fn (array $q): array => $q + ['source' => 'ai'], $questions));
 
         $this->ai->updateJob($jobId, [
             'status' => 'done',
@@ -374,37 +387,50 @@ final class QuizWizardController
             'title' => $title,
             'summary' => sprintf('%d ข้อ · %s', count($questions), implode(', ', $params['types'])),
             'ai_mode' => $source === 'byok' ? 'โหมดเร็ว' : null,
-            'params' => $params,
+            'params' => ['unitTitles' => $params['unitTitles'], 'unit_id' => $params['unit_id'], 'kind' => $params['kind'], 'types' => $params['types'], 'count' => $params['count'], 'level' => $params['level']],
         ]);
         $this->reviews->linkTarget($genId, 'quiz', $quizId);
 
         return $quizId;
     }
 
-    /** @return array{lessons:list<int>,lessonTitles:list<string>,count:int,types:list<string>,level:string} */
+    /** @return array{unit_id:?int,kind:string,unitTitles:list<string>,count:int,types:list<string>,level:string} */
     private function readParams(Request $request, array $course): array
     {
         $q = $request->getQueryParams();
-        $lessonIds = array_values(array_filter(array_map('intval', (array) ($q['lessons'] ?? []))));
+        $unitId = isset($q['unit_id']) && $q['unit_id'] !== '' ? (int) $q['unit_id'] : null;
+        $kind = in_array($q['kind'] ?? '', ['pretest', 'posttest'], true) ? $q['kind'] : 'posttest';
 
-        $lessons = $lessonIds === [] ? [] : $this->lessons->byIds($lessonIds);
-        // เก็บเฉพาะบทเรียนของรายวิชานี้
-        $lessons = array_values(array_filter($lessons, static fn (array $l): bool => (int) $l['course_id'] === (int) $course['id']));
+        $unitTitles = [];
+        if ($unitId !== null) {
+            $unit = $this->units->find($unitId);
+            if ($unit !== null && (int) $unit['course_id'] === (int) $course['id']) {
+                $unitTitles = [$unit['title']];
+            } else {
+                $unitId = null;
+            }
+        }
+
+        if ($unitTitles === []) {
+            // fallback: ใช้ชื่อรายวิชาเป็น context ให้ AI
+            $unitTitles = [$course['name']];
+        }
 
         $types = array_values(array_intersect(self::TYPE_OPTIONS, (array) ($q['types'] ?? [])));
-        $count = in_array((int) ($q['count'] ?? 0), self::COUNT_OPTIONS, true) ? (int) $q['count'] : 8;
+        $count = in_array((int) ($q['count'] ?? 0), self::COUNT_OPTIONS, true) ? (int) $q['count'] : 10;
         $level = array_key_exists((string) ($q['level'] ?? ''), self::LEVELS) ? (string) $q['level'] : 'กลาง';
 
         return [
-            'lessons' => array_map(static fn (array $l): int => (int) $l['id'], $lessons),
-            'lessonTitles' => array_map(static fn (array $l): string => $l['title'], $lessons),
+            'unit_id' => $unitId,
+            'kind' => $kind,
+            'unitTitles' => $unitTitles,
             'count' => $count,
             'types' => $types ?: ['ปรนัย'],
             'level' => $level,
         ];
     }
 
-    private function lessonRange(array $titles): string
+    private function unitRange(array $titles): string
     {
         if ($titles === []) {
             return '';
@@ -413,7 +439,7 @@ final class QuizWizardController
             return ' · ' . $titles[0];
         }
 
-        return sprintf(' · %d บทเรียน', count($titles));
+        return sprintf(' · %d หน่วย', count($titles));
     }
 
     /** @return array{chip:string,wait:string,error:?array{reason:string,message:string}} */

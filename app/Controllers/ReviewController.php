@@ -49,7 +49,7 @@ final class ReviewController
         return match ($item['target_type']) {
             'quiz' => Url::to("/courses/{$item['course_id']}/quizzes/{$item['target_id']}/review"),
             'lesson_plan' => Url::to("/courses/{$item['course_id']}/lesson-plan/{$item['target_id']}"),
-            'lesson' => Url::to("/courses/{$item['course_id']}/lessons/{$item['target_id']}/edit"),
+            'lesson' => Url::to("/courses/{$item['course_id']}/units/{$item['target_id']}/edit"),
             default => null,
         };
     }

@@ -9,7 +9,7 @@ use App\Auth\Auth;
 use App\Domain\AiRepository;
 use App\Domain\CourseRepository;
 use App\Domain\EnrollmentRepository;
-use App\Domain\LessonRepository;
+use App\Domain\UnitRepository;
 use App\Domain\QuizRepository;
 use App\Domain\ReviewRepository;
 use App\Domain\SettingsRepository;
@@ -52,7 +52,7 @@ $builder->addDefinitions([
 
     SettingsRepository::class => static fn (Db $db): SettingsRepository => new SettingsRepository($db),
     CourseRepository::class => static fn (Db $db): CourseRepository => new CourseRepository($db),
-    LessonRepository::class => static fn (Db $db): LessonRepository => new LessonRepository($db),
+    UnitRepository::class => static fn (Db $db): UnitRepository => new UnitRepository($db),
     QuizRepository::class => static fn (Db $db): QuizRepository => new QuizRepository($db),
     EnrollmentRepository::class => static fn (Db $db): EnrollmentRepository => new EnrollmentRepository($db),
     ReviewRepository::class => static fn (Db $db): ReviewRepository => new ReviewRepository($db),
