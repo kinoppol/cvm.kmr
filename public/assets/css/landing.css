@@ -1,153 +1,317 @@
-/* หน้าแรกสาธารณะ — สไตล์ตามแม่แบบ Education (Colorlib) ปรับเป็น RVC Learn
-   ฟอนต์และโทนสีอ้างอิงจาก resources/design/course-template/assets/css/style.css */
-@import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;600;700&family=Mulish:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap");
+/* หน้าแรกสาธารณะ — ดีไซน์ยุค AI ที่เน้นสาขาวิชาการตลาด/ธุรกิจค้าปลีก (สาขานำร่อง)
+   โทนสีม่วง-คราม (AI/เทคโนโลยี) ผสมสีอำพัน (การค้า/ป้ายราคา) บนพื้นหลังสว่างสะอาดตา */
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap");
 
 :root {
-    --lp-theme: #C86FFF;
-    --lp-theme-dark: #b24ff0;
-    --lp-heading: #4255A4;
-    --lp-body: #6E7697;
-    --lp-accent: #FF9F67;
-    --lp-section: #f7f7fd;
-    --lp-line: #ecebf6;
-    --lp-shadow: 0 6px 24px rgba(2, 25, 65, .08);
+    --lp-primary: #4F46E5;
+    --lp-primary-dark: #3730A3;
+    --lp-violet: #7C3AED;
+    --lp-accent: #F59E0B;
+    --lp-accent-ink: #7A4A05;
+    --lp-emerald: #10B981;
+    --lp-ink: #12162B;
+    --lp-heading: #171B34;
+    --lp-body: #5B6178;
+    --lp-muted: #8A90A6;
+    --lp-surface: #FFFFFF;
+    --lp-section: #F6F6FC;
+    --lp-line: #E7E8F3;
+    --lp-dark: #0B0F24;
+    --lp-dark2: #12173A;
+    --lp-shadow: 0 10px 30px rgba(31, 26, 90, .08);
+    --lp-shadow-lg: 0 24px 60px rgba(20, 16, 60, .16);
 }
 
 .lp * { box-sizing: border-box; }
 .lp {
-    font-family: "Mulish", "Sarabun", system-ui, sans-serif;
+    font-family: "Sarabun", system-ui, sans-serif;
     color: var(--lp-body); font-size: 16px; line-height: 1.75;
-    background: #fff; -webkit-font-smoothing: antialiased;
+    background: var(--lp-surface); -webkit-font-smoothing: antialiased;
 }
 .lp h1, .lp h2, .lp h3, .lp h4 {
-    font-family: "Josefin Sans", "IBM Plex Sans Thai", sans-serif;
-    color: var(--lp-heading); margin: 0; font-weight: 600; line-height: 1.25;
+    font-family: "Sarabun", system-ui, sans-serif;
+    color: var(--lp-heading); margin: 0; font-weight: 700; line-height: 1.3;
+    letter-spacing: -.01em;
 }
 .lp a { color: inherit; text-decoration: none; }
-.lp-wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.lp-wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.lp-mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
 
-/* header */
+/* ---------- ปุ่มและป้าย ---------- */
+.lp-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; border-radius: 12px;
+    font: 600 14.5px/1 "Sarabun", sans-serif;
+    border: 1.5px solid var(--lp-line); color: var(--lp-heading); background: var(--lp-surface); cursor: pointer;
+    transition: .22s ease;
+}
+.lp-btn:hover { border-color: var(--lp-primary); color: var(--lp-primary); transform: translateY(-1px); }
+.lp-btn-solid {
+    border-color: transparent; color: #fff;
+    background: linear-gradient(135deg, var(--lp-primary), var(--lp-violet));
+    box-shadow: 0 10px 26px rgba(79, 70, 229, .32);
+}
+.lp-btn-solid:hover { color: #fff; box-shadow: 0 14px 32px rgba(79, 70, 229, .42); }
+.lp-btn-ghost-light {
+    border-color: rgba(255, 255, 255, .28); color: #fff; background: rgba(255, 255, 255, .06);
+    backdrop-filter: blur(6px);
+}
+.lp-btn-ghost-light:hover { border-color: rgba(255, 255, 255, .6); color: #fff; }
+.lp-btn-sm { padding: 10px 20px; font-size: 13.5px; }
+
+.lp-pill {
+    display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px 7px 8px; border-radius: 999px;
+    font: 600 12.5px/1 "Sarabun", sans-serif; letter-spacing: .2px;
+}
+.lp-pill-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lp-emerald); flex: none; }
+.lp-pill-dark { background: rgba(255, 255, 255, .08); color: #fff; border: 1px solid rgba(255, 255, 255, .16); }
+.lp-pill-amber { background: #FEF3E2; color: var(--lp-accent-ink); }
+.lp-pill-amber .lp-pill-dot { background: var(--lp-accent); }
+
+/* ---------- header ---------- */
 .lp-header {
-    position: sticky; top: 0; z-index: 30; background: #fff;
+    position: sticky; top: 0; z-index: 40; background: rgba(255, 255, 255, .82);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--lp-line);
 }
-.lp-header .lp-wrap { display: flex; align-items: center; gap: 20px; height: 74px; }
+.lp-header .lp-wrap { display: flex; align-items: center; gap: 20px; height: 72px; }
 .lp-logo { display: flex; align-items: center; gap: 10px; }
 .lp-logo-mark {
-    width: 34px; height: 34px; border-radius: 9px; background: var(--lp-theme);
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--lp-primary), var(--lp-violet));
     color: #fff; display: grid; place-items: center;
     font: 700 13px/1 "IBM Plex Mono", monospace; letter-spacing: .5px;
+    box-shadow: 0 6px 16px rgba(79, 70, 229, .35);
 }
-.lp-logo-name { font: 600 19px/1 "Josefin Sans", sans-serif; color: var(--lp-heading); }
+.lp-logo-name { font: 700 19px/1 "Sarabun", sans-serif; color: var(--lp-heading); }
 .lp-nav { margin-left: auto; display: flex; align-items: center; gap: 30px; }
-.lp-nav a { font: 500 15px/1 "Josefin Sans", sans-serif; color: var(--lp-heading); }
-.lp-nav a:hover { color: var(--lp-theme); }
-.lp-btn {
-    display: inline-block; padding: 13px 30px; border-radius: 4px;
-    font: 600 13px/1 "Josefin Sans", sans-serif; letter-spacing: 2px; text-transform: uppercase;
-    border: 1px solid var(--lp-theme); color: var(--lp-theme); background: #fff; cursor: pointer;
-    transition: .25s;
-}
-.lp-btn:hover { background: var(--lp-theme); color: #fff; }
-.lp-btn-solid { background: var(--lp-theme); color: #fff; }
-.lp-btn-solid:hover { background: var(--lp-theme-dark); color: #fff; }
-.lp-btn-sm { padding: 10px 22px; }
+.lp-nav a:not(.lp-btn) { font: 600 14.5px/1 "Sarabun", sans-serif; color: var(--lp-body); }
+.lp-nav a:not(.lp-btn):hover { color: var(--lp-primary); }
 
-/* hero */
+/* ---------- hero ---------- */
 .lp-hero {
-    background:
-        radial-gradient(1200px 400px at 15% -20%, rgba(200, 111, 255, .22), transparent 60%),
-        linear-gradient(120deg, #f3ecff 0%, #eef1fb 55%, #f7f7fd 100%);
-    border-bottom: 1px solid var(--lp-line);
+    position: relative; overflow: hidden;
+    background: radial-gradient(1100px 620px at 82% -12%, rgba(124, 58, 237, .55), transparent 62%),
+        radial-gradient(900px 500px at 6% 12%, rgba(245, 158, 11, .28), transparent 60%),
+        linear-gradient(165deg, var(--lp-dark) 0%, var(--lp-dark2) 62%, #171B4A 100%);
 }
-.lp-hero .lp-wrap { padding-top: 70px; padding-bottom: 70px; }
-.lp-eyebrow {
-    font: 500 13px/1 "IBM Plex Mono", monospace; letter-spacing: 1px;
-    color: var(--lp-theme); text-transform: uppercase;
+.lp-hero::before {
+    /* ตารางเทคโนโลยีจาง ๆ พาดพื้นหลัง */
+    content: ""; position: absolute; inset: 0; opacity: .35; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
 }
-.lp-hero h1 { font-size: 46px; margin: 16px 0 0; font-weight: 700; }
-.lp-crumb { margin-top: 18px; font: 500 14px/1 "Josefin Sans", sans-serif; color: var(--lp-body); }
-.lp-crumb a { color: var(--lp-theme); }
-.lp-hero-lead { margin-top: 14px; max-width: 640px; }
+.lp-hero-inner {
+    position: relative; z-index: 1; padding: 84px 0 92px;
+    display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 56px; align-items: center;
+}
+.lp-eyebrow { font: 600 13px/1 "IBM Plex Mono", monospace; letter-spacing: 1px; color: #C9C4FF; text-transform: uppercase; }
+.lp-hero h1 { font-size: 44px; margin: 18px 0 0; color: #fff; }
+.lp-hero h1 .lp-accent-text {
+    background: linear-gradient(100deg, #FBBF24, #F59E0B);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lp-hero-lead { margin-top: 18px; max-width: 560px; color: #C7C9E0; font-size: 16.5px; }
+.lp-hero-ctas { margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; }
+.lp-hero-pills { margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* course sections */
-.lp-body-area { background: var(--lp-section); padding: 72px 0; }
-.lp-section-title { text-align: center; margin-bottom: 46px; }
-.lp-section-title h2 { font-size: 34px; }
-.lp-section-title p { margin: 10px 0 0; }
-.lp-group { margin-top: 56px; }
+/* การ์ดลอยฝั่งขวาของ hero — จำลองผู้ช่วย AI แนะนำสินค้าขายดี */
+.lp-hero-art { position: relative; min-height: 380px; }
+.lp-ai-card {
+    position: relative; z-index: 2; margin-left: auto; max-width: 380px;
+    background: rgba(18, 22, 52, .72); border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 20px; padding: 22px; backdrop-filter: blur(18px);
+    box-shadow: var(--lp-shadow-lg);
+}
+.lp-ai-card-head { display: flex; align-items: center; gap: 10px; }
+.lp-ai-avatar {
+    width: 34px; height: 34px; border-radius: 10px; flex: none;
+    background: linear-gradient(135deg, var(--lp-violet), var(--lp-primary));
+    display: grid; place-items: center; color: #fff; font-size: 16px;
+}
+.lp-ai-card-head strong { color: #fff; font-size: 14.5px; }
+.lp-ai-card-head span { display: block; font-size: 12px; color: #9CA1C7; margin-top: 1px; }
+.lp-ai-msg {
+    margin-top: 16px; padding: 13px 14px; border-radius: 13px 13px 13px 4px;
+    background: rgba(255, 255, 255, .07); color: #E4E5F5; font-size: 13.5px; line-height: 1.7;
+}
+.lp-ai-chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.lp-ai-chip {
+    padding: 7px 12px; border-radius: 999px; font: 600 12px/1 "Sarabun", sans-serif;
+    background: rgba(245, 158, 11, .16); color: #FCD34D; border: 1px solid rgba(245, 158, 11, .3);
+}
+.lp-ai-stats { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.lp-ai-stats div { background: rgba(255, 255, 255, .05); border-radius: 12px; padding: 10px 8px; text-align: center; }
+.lp-ai-stats b { display: block; color: #fff; font-size: 17px; font-family: "IBM Plex Mono", monospace; }
+.lp-ai-stats span { display: block; margin-top: 3px; font-size: 10.5px; color: #9CA1C7; }
+
+.lp-float-badge {
+    position: absolute; z-index: 3; display: flex; align-items: center; gap: 8px;
+    background: #fff; border-radius: 14px; padding: 10px 14px; box-shadow: var(--lp-shadow-lg);
+    font: 600 12.5px/1.3 "Sarabun", sans-serif; color: var(--lp-heading);
+    animation: lp-float 5s ease-in-out infinite;
+}
+.lp-float-badge .lp-emoji { font-size: 18px; }
+.lp-float-badge.b1 { top: -6px; left: -10px; animation-delay: 0s; }
+.lp-float-badge.b2 { bottom: 6px; left: 14px; animation-delay: 1.2s; }
+@keyframes lp-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.lp-stats-bar {
+    position: relative; z-index: 1;
+    background: var(--lp-surface); border-bottom: 1px solid var(--lp-line);
+    margin-top: -1px;
+}
+.lp-stats-bar .lp-wrap {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+}
+.lp-stat { padding: 26px 18px; text-align: center; border-left: 1px solid var(--lp-line); }
+.lp-stat:first-child { border-left: none; }
+.lp-stat b { display: block; font: 700 26px/1 "Sarabun", sans-serif; color: var(--lp-heading); }
+.lp-stat span { display: block; margin-top: 6px; font-size: 12.5px; color: var(--lp-muted); }
+
+/* ---------- จุดเด่น / features ---------- */
+.lp-features { padding: 88px 0 96px; background: var(--lp-surface); }
+.lp-section-title { max-width: 640px; margin: 0 auto 50px; text-align: center; }
+.lp-section-title .lp-eyebrow { color: var(--lp-primary); }
+.lp-section-title h2 { font-size: 32px; margin-top: 12px; }
+.lp-section-title p { margin: 14px 0 0; }
+
+.lp-feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+.lp-feat {
+    padding: 28px 24px; border-radius: 18px; background: var(--lp-section);
+    border: 1px solid var(--lp-line); transition: .25s ease;
+}
+.lp-feat:hover { transform: translateY(-4px); box-shadow: var(--lp-shadow); background: var(--lp-surface); }
+.lp-feat-icon {
+    width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--lp-primary), var(--lp-violet)); color: #fff; font-size: 21px;
+}
+.lp-feat:nth-child(2) .lp-feat-icon { background: linear-gradient(135deg, var(--lp-accent), #FB923C); }
+.lp-feat:nth-child(3) .lp-feat-icon { background: linear-gradient(135deg, var(--lp-emerald), #059669); }
+.lp-feat:nth-child(4) .lp-feat-icon { background: linear-gradient(135deg, #6366F1, #4338CA); }
+.lp-feat h3 { font-size: 17px; margin-top: 18px; }
+.lp-feat p { margin: 10px 0 0; font-size: 14px; line-height: 1.75; }
+
+/* ---------- รายวิชา ---------- */
+.lp-body-area { background: var(--lp-section); padding: 90px 0; }
+.lp-group { margin-top: 60px; }
 .lp-group:first-child { margin-top: 0; }
 .lp-group-head {
-    display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px;
-    padding-bottom: 12px; border-bottom: 2px solid var(--lp-line);
+    display: flex; align-items: center; gap: 12px; margin-bottom: 26px; flex-wrap: wrap;
 }
-.lp-group-head h3 { font-size: 22px; }
-.lp-group-head span { font: 500 13px/1 "IBM Plex Mono", monospace; color: var(--lp-body); }
+.lp-group-head h3 { font-size: 21px; }
+.lp-group-head .lp-count { font: 600 12.5px/1 "IBM Plex Mono", monospace; color: var(--lp-muted); }
+.lp-pilot-ribbon {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
+    background: linear-gradient(120deg, var(--lp-accent), #FB923C); color: #fff;
+    font: 700 11.5px/1 "Sarabun", sans-serif; letter-spacing: .3px;
+}
 
-.lp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+.lp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
 .lp-card {
-    background: #fff; border-radius: 10px; box-shadow: var(--lp-shadow);
-    overflow: hidden; transition: .4s; display: flex; flex-direction: column;
+    background: var(--lp-surface); border-radius: 16px; box-shadow: var(--lp-shadow);
+    border: 1px solid var(--lp-line);
+    overflow: hidden; transition: .3s ease; display: flex; flex-direction: column;
 }
-.lp-card:hover { box-shadow: 0 12px 34px rgba(2, 25, 65, .12); transform: translateY(-3px); }
+.lp-card:hover { box-shadow: var(--lp-shadow-lg); transform: translateY(-4px); border-color: transparent; }
 .lp-card-img {
-    height: 132px; display: flex; align-items: flex-end; justify-content: space-between;
-    padding: 16px 18px; color: #fff;
+    height: 118px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 16px 18px; color: #fff; position: relative;
 }
-.lp-card-img .lp-code { font: 500 13px/1 "IBM Plex Mono", monospace; opacity: .85; }
+.lp-card-img::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(160deg, rgba(255, 255, 255, .16), transparent 60%);
+}
+.lp-card-img .lp-code { font: 600 12.5px/1 "IBM Plex Mono", monospace; opacity: .9; position: relative; }
 .lp-card-img .lp-credit {
-    font: 600 12px/1 "Josefin Sans", sans-serif; background: rgba(255, 255, 255, .22);
-    padding: 5px 9px; border-radius: 20px; backdrop-filter: blur(2px);
+    font: 700 12px/1 "Sarabun", sans-serif; background: rgba(255, 255, 255, .24);
+    padding: 5px 10px; border-radius: 20px; backdrop-filter: blur(2px); position: relative;
 }
-.lp-card-body { padding: 26px 22px 22px; display: flex; flex-direction: column; flex: 1; }
+.lp-card-body { padding: 22px 20px 20px; display: flex; flex-direction: column; flex: 1; }
 .lp-card-cat {
-    font: 600 12px/1 "IBM Plex Mono", monospace; letter-spacing: .5px;
-    color: var(--lp-theme); text-transform: uppercase;
+    font: 700 11.5px/1 "IBM Plex Mono", monospace; letter-spacing: .4px;
+    color: var(--lp-primary); text-transform: uppercase;
 }
-.lp-card-body h4 { font-size: 19px; font-weight: 500; margin: 8px 0 0; }
+.lp-card-body h4 { font-size: 18px; font-weight: 600; margin: 8px 0 0; color: var(--lp-heading); }
 .lp-card-desc {
-    margin: 12px 0 0; font-size: 14px; line-height: 1.8; color: var(--lp-body);
+    margin: 10px 0 0; font-size: 13.5px; line-height: 1.8; color: var(--lp-body);
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 .lp-card-foot {
-    margin-top: auto; padding-top: 18px; display: flex; align-items: center;
+    margin-top: auto; padding-top: 16px; display: flex; align-items: center;
     justify-content: space-between; gap: 12px;
 }
-.lp-card-meta { font-size: 13px; color: var(--lp-body); }
+.lp-card-meta { font-size: 12.5px; color: var(--lp-muted); }
 .lp-card-foot .lp-more {
-    font: 600 12px/1 "Josefin Sans", sans-serif; letter-spacing: 1.5px; text-transform: uppercase;
-    color: var(--lp-heading); border: 1px solid var(--lp-line); border-radius: 4px;
-    padding: 9px 16px; transition: .3s;
+    font: 600 12px/1 "Sarabun", sans-serif; color: var(--lp-primary);
+    border: 1px solid var(--lp-line); border-radius: 8px; padding: 8px 14px; transition: .25s;
+    white-space: nowrap;
 }
-.lp-card:hover .lp-more { background: var(--lp-accent); border-color: var(--lp-accent); color: #fff; }
+.lp-card:hover .lp-more { background: var(--lp-primary); border-color: var(--lp-primary); color: #fff; }
 
 .lp-empty {
-    max-width: 540px; margin: 0 auto; text-align: center; background: #fff;
-    border-radius: 12px; box-shadow: var(--lp-shadow); padding: 56px 40px;
+    max-width: 560px; margin: 0 auto; text-align: center; background: var(--lp-surface);
+    border-radius: 18px; box-shadow: var(--lp-shadow); padding: 60px 44px; border: 1px solid var(--lp-line);
 }
-.lp-empty h3 { font-size: 22px; }
+.lp-empty .lp-feat-icon { margin: 0 auto; }
+.lp-empty h3 { font-size: 21px; margin-top: 20px; }
 .lp-empty p { margin: 12px 0 0; }
 
-/* footer */
-.lp-footer { background: #16161a; color: #b9b9c6; padding: 56px 0 22px; }
-.lp-footer .lp-wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
-.lp-footer h4 { color: #fff; font-size: 18px; margin-bottom: 6px; }
-.lp-footer-col { flex: 1; min-width: 200px; }
-.lp-footer a:hover { color: var(--lp-theme); }
-.lp-footer-bottom {
-    max-width: 1200px; margin: 34px auto 0; padding: 20px 24px 0;
-    border-top: 1px solid rgba(255, 255, 255, .1); font-size: 13px;
+/* ---------- แถบชวนสมัคร ---------- */
+.lp-cta {
+    position: relative; overflow: hidden; padding: 76px 0;
+    background: linear-gradient(120deg, var(--lp-primary-dark), var(--lp-violet) 70%);
 }
-.lp-footer-bottom a { color: var(--lp-theme); }
+.lp-cta::before {
+    content: ""; position: absolute; inset: 0; opacity: .5; pointer-events: none;
+    background: radial-gradient(600px 300px at 90% 0%, rgba(245, 158, 11, .35), transparent 65%);
+}
+.lp-cta-inner {
+    position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+}
+.lp-cta h2 { color: #fff; font-size: 27px; max-width: 480px; }
+.lp-cta p { margin: 10px 0 0; color: #DCDBFF; max-width: 480px; }
+.lp-cta-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
 
-@media (max-width: 960px) {
-    .lp-grid { grid-template-columns: repeat(2, 1fr); }
-    .lp-hero h1 { font-size: 34px; }
-    .lp-nav { gap: 18px; }
+/* ---------- footer ---------- */
+.lp-footer { background: var(--lp-dark); color: #9195B8; padding: 60px 0 24px; }
+.lp-footer .lp-wrap { display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start; }
+.lp-footer-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.lp-footer h4 { color: #fff; font-size: 15px; margin-bottom: 10px; }
+.lp-footer-col { flex: 1; min-width: 200px; }
+.lp-footer-col:first-child { flex: 1.4; min-width: 260px; }
+.lp-footer p { font-size: 13.5px; line-height: 1.9; }
+.lp-footer a:hover { color: #fff; }
+.lp-footer-bottom {
+    max-width: 1180px; margin: 40px auto 0; padding: 20px 24px 0;
+    border-top: 1px solid rgba(255, 255, 255, .08); font-size: 12.5px;
 }
-@media (max-width: 620px) {
+.lp-footer-bottom a { color: #C9C4FF; }
+
+@media (max-width: 980px) {
+    .lp-hero-inner { grid-template-columns: 1fr; }
+    .lp-hero-art { min-height: 0; margin-top: 20px; }
+    .lp-ai-card { margin: 0 auto; }
+    .lp-feat-grid { grid-template-columns: repeat(2, 1fr); }
+    .lp-grid { grid-template-columns: repeat(2, 1fr); }
+    .lp-stats-bar .lp-wrap { grid-template-columns: repeat(2, 1fr); }
+    .lp-stat:nth-child(3) { border-left: none; }
+    .lp-stat:nth-child(1), .lp-stat:nth-child(2) { border-bottom: 1px solid var(--lp-line); padding-bottom: 22px; }
+}
+@media (max-width: 640px) {
+    .lp-hero-inner { padding: 60px 0 64px; }
+    .lp-hero h1 { font-size: 32px; }
+    .lp-feat-grid { grid-template-columns: 1fr; }
     .lp-grid { grid-template-columns: 1fr; }
     .lp-nav a:not(.lp-btn) { display: none; }
     .lp-header .lp-wrap { height: 64px; }
-    .lp-body-area { padding: 44px 0; }
+    .lp-body-area, .lp-features { padding: 56px 0; }
+    .lp-cta-inner { flex-direction: column; align-items: flex-start; }
+    .lp-float-badge { display: none; }
 }
