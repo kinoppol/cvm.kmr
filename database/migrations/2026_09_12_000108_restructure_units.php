@@ -26,7 +26,7 @@ final class RestructureUnits extends Migration
     public function up(Runner $db): void
     {
         // ─── 1. หน่วยการเรียน (แทน lessons) ───────────────────────────────────
-        $db->exec(sprintf('CREATE TABLE `%s` (
+        $db->exec(sprintf('CREATE TABLE IF NOT EXISTS `%s` (
             `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `course_id`      INT UNSIGNED NOT NULL,
             `title`          VARCHAR(191) NOT NULL,
@@ -48,7 +48,7 @@ final class RestructureUnits extends Migration
         ) %s', $this->table('units'), $this->table('courses'), $this->table('users'), $this->options()));
 
         // ─── 2. ส่วนเนื้อหา (text / video / pdf) ──────────────────────────────
-        $db->exec(sprintf('CREATE TABLE `%s` (
+        $db->exec(sprintf('CREATE TABLE IF NOT EXISTS `%s` (
             `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `unit_id`    INT UNSIGNED NOT NULL,
             `type`       ENUM(\'text\',\'video\',\'pdf\') NOT NULL DEFAULT \'text\',
@@ -65,66 +65,92 @@ final class RestructureUnits extends Migration
             CONSTRAINT `fk_section_unit` FOREIGN KEY (`unit_id`) REFERENCES `%s` (`id`) ON DELETE CASCADE
         ) %s', $this->table('unit_sections'), $this->table('units'), $this->options()));
 
-        // ─── 3. ย้ายข้อมูล lessons → units ────────────────────────────────────
-        $db->exec(sprintf(
-            'INSERT INTO `%s`
-                (id, course_id, title, key_content, sort_order, source, review_status, created_by, published_at, created_at, updated_at)
-             SELECT id, course_id, title, summary, sort_order, source, review_status, created_by, published_at, created_at, updated_at
-             FROM `%s`',
-            $this->table('units'),
-            $this->table('lessons')
-        ));
+        // ─── 3. ย้ายข้อมูล lessons → units (ถ้ายังมีตาราง lessons อยู่) ────────
+        try {
+            $db->exec(sprintf(
+                'INSERT IGNORE INTO `%s`
+                    (id, course_id, title, key_content, sort_order, source, review_status, created_by, published_at, created_at, updated_at)
+                 SELECT id, course_id, title, summary, sort_order, source, review_status, created_by, published_at, created_at, updated_at
+                 FROM `%s`',
+                $this->table('units'),
+                $this->table('lessons')
+            ));
 
-        // เนื้อหา text ของบทเรียนเดิม → unit_section type=text
-        $db->exec(sprintf(
-            'INSERT INTO `%s` (unit_id, type, title, content, sort_order, created_at, updated_at)
-             SELECT id, \'text\', \'เนื้อหา\', content, 0, created_at, updated_at
-             FROM `%s`
-             WHERE content IS NOT NULL AND content != \'\'',
-            $this->table('unit_sections'),
-            $this->table('lessons')
-        ));
+            // เนื้อหา text ของบทเรียนเดิม → unit_section type=text
+            $db->exec(sprintf(
+                'INSERT IGNORE INTO `%s` (unit_id, type, title, content, sort_order, created_at, updated_at)
+                 SELECT id, \'text\', \'เนื้อหา\', content, 0, created_at, updated_at
+                 FROM `%s`
+                 WHERE content IS NOT NULL AND content != \'\'',
+                $this->table('unit_sections'),
+                $this->table('lessons')
+            ));
+        } catch (\Throwable) {
+            // ตาราง lessons ไม่มีแล้ว (เคย migrate แล้วหรือ fresh install) — ข้ามได้
+        }
 
         // ─── 4. เพิ่ม unit_id + kind ใน quizzes ───────────────────────────────
         $db->exec(sprintf(
             "ALTER TABLE `%s`
-                ADD COLUMN `unit_id` INT UNSIGNED NULL AFTER `lesson_id`,
-                ADD COLUMN `kind` ENUM('pretest','posttest') NOT NULL DEFAULT 'posttest' AFTER `unit_id`,
-                ADD CONSTRAINT `fk_quiz_unit` FOREIGN KEY (`unit_id`) REFERENCES `%s` (`id`) ON DELETE SET NULL",
-            $this->table('quizzes'),
-            $this->table('units')
-        ));
-
-        // map lesson_id → unit_id สำหรับ quiz เดิม (id เหมือนกันเพราะ copy ตรงๆ)
-        $db->exec(sprintf(
-            'UPDATE `%s` SET unit_id = lesson_id WHERE lesson_id IS NOT NULL',
+                ADD COLUMN IF NOT EXISTS `unit_id` INT UNSIGNED NULL AFTER `lesson_id`,
+                ADD COLUMN IF NOT EXISTS `kind` ENUM('pretest','posttest') NOT NULL DEFAULT 'posttest' AFTER `unit_id`",
             $this->table('quizzes')
         ));
+        // เพิ่ม FK แยกต่างหาก (ถ้ามีอยู่แล้วจะ ignore)
+        try {
+            $db->exec(sprintf(
+                "ALTER TABLE `%s` ADD CONSTRAINT `fk_quiz_unit` FOREIGN KEY (`unit_id`) REFERENCES `%s` (`id`) ON DELETE SET NULL",
+                $this->table('quizzes'),
+                $this->table('units')
+            ));
+        } catch (\Throwable) {
+            // FK มีอยู่แล้ว — ข้ามได้
+        }
+
+        // map lesson_id → unit_id สำหรับ quiz เดิม (id เหมือนกันเพราะ copy ตรงๆ)
+        try {
+            $db->exec(sprintf(
+                'UPDATE `%s` SET unit_id = lesson_id WHERE lesson_id IS NOT NULL AND unit_id IS NULL',
+                $this->table('quizzes')
+            ));
+        } catch (\Throwable) {
+            // lesson_id column อาจไม่มีใน schema ใหม่ — ข้ามได้
+        }
 
         // ─── 5. เพิ่ม unit_id ใน assignments ──────────────────────────────────
         $db->exec(sprintf(
-            "ALTER TABLE `%s`
-                ADD COLUMN `unit_id` INT UNSIGNED NULL AFTER `lesson_id`,
-                ADD CONSTRAINT `fk_assignment_unit` FOREIGN KEY (`unit_id`) REFERENCES `%s` (`id`) ON DELETE SET NULL",
-            $this->table('assignments'),
-            $this->table('units')
-        ));
-
-        $db->exec(sprintf(
-            'UPDATE `%s` SET unit_id = lesson_id WHERE lesson_id IS NOT NULL',
+            "ALTER TABLE `%s` ADD COLUMN IF NOT EXISTS `unit_id` INT UNSIGNED NULL AFTER `lesson_id`",
             $this->table('assignments')
         ));
+        try {
+            $db->exec(sprintf(
+                "ALTER TABLE `%s` ADD CONSTRAINT `fk_assignment_unit` FOREIGN KEY (`unit_id`) REFERENCES `%s` (`id`) ON DELETE SET NULL",
+                $this->table('assignments'),
+                $this->table('units')
+            ));
+        } catch (\Throwable) {
+            // FK มีอยู่แล้ว — ข้ามได้
+        }
+
+        try {
+            $db->exec(sprintf(
+                'UPDATE `%s` SET unit_id = lesson_id WHERE lesson_id IS NOT NULL AND unit_id IS NULL',
+                $this->table('assignments')
+            ));
+        } catch (\Throwable) {
+            // lesson_id column อาจไม่มี — ข้ามได้
+        }
 
         // ─── 6. เพิ่ม pass_threshold ใน courses ───────────────────────────────
         $db->exec(sprintf(
             "ALTER TABLE `%s`
-                ADD COLUMN `pass_threshold` DECIMAL(5,2) NOT NULL DEFAULT 70.00
+                ADD COLUMN IF NOT EXISTS `pass_threshold` DECIMAL(5,2) NOT NULL DEFAULT 70.00
                     COMMENT 'เกณฑ์ผ่านรายวิชา (%) รวมคะแนนทุกหน่วย' AFTER `status`",
             $this->table('courses')
         ));
 
         // ─── 7. ติดตามความคืบหน้าระดับหน่วย ──────────────────────────────────
-        $db->exec(sprintf('CREATE TABLE `%s` (
+        $db->exec(sprintf('CREATE TABLE IF NOT EXISTS `%s` (
             `id`               INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `unit_id`          INT UNSIGNED NOT NULL,
             `student_id`       INT UNSIGNED NOT NULL,
@@ -141,7 +167,7 @@ final class RestructureUnits extends Migration
         ) %s', $this->table('unit_progress'), $this->table('units'), $this->table('users'), $this->options()));
 
         // ─── 8. ติดตามความคืบหน้าระดับส่วนเนื้อหา ────────────────────────────
-        $db->exec(sprintf('CREATE TABLE `%s` (
+        $db->exec(sprintf('CREATE TABLE IF NOT EXISTS `%s` (
             `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `section_id`   INT UNSIGNED NOT NULL,
             `student_id`   INT UNSIGNED NOT NULL,
@@ -154,7 +180,7 @@ final class RestructureUnits extends Migration
         ) %s', $this->table('section_progress'), $this->table('unit_sections'), $this->table('users'), $this->options()));
 
         // ─── 9. ไฟล์แนบต่อการส่งใบงาน (รองรับหลายไฟล์) ──────────────────────
-        $db->exec(sprintf('CREATE TABLE `%s` (
+        $db->exec(sprintf('CREATE TABLE IF NOT EXISTS `%s` (
             `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `submission_id` INT UNSIGNED NOT NULL,
             `original_name` VARCHAR(255) NOT NULL,

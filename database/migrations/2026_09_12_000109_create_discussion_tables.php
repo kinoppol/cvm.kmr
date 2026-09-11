@@ -15,7 +15,7 @@ final class CreateDiscussionTables extends Migration
     public function up(Runner $run): void
     {
         $run->execute(sprintf(
-            'CREATE TABLE %s (
+            'CREATE TABLE IF NOT EXISTS %s (
                 id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 name        VARCHAR(120) NOT NULL,
                 description TEXT         NULL,
@@ -31,7 +31,7 @@ final class CreateDiscussionTables extends Migration
         ));
 
         $run->execute(sprintf(
-            'CREATE TABLE %s (
+            'CREATE TABLE IF NOT EXISTS %s (
                 group_id    INT UNSIGNED NOT NULL,
                 user_id     INT UNSIGNED NOT NULL,
                 status      ENUM(\'pending\',\'approved\') NOT NULL DEFAULT \'pending\',
@@ -46,7 +46,7 @@ final class CreateDiscussionTables extends Migration
         ));
 
         $run->execute(sprintf(
-            'CREATE TABLE %s (
+            'CREATE TABLE IF NOT EXISTS %s (
                 id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 group_id    INT UNSIGNED NOT NULL,
                 author_id   INT UNSIGNED NOT NULL,
@@ -64,7 +64,7 @@ final class CreateDiscussionTables extends Migration
         ));
 
         $run->execute(sprintf(
-            'CREATE TABLE %s (
+            'CREATE TABLE IF NOT EXISTS %s (
                 id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 topic_id    INT UNSIGNED NOT NULL,
                 author_id   INT UNSIGNED NOT NULL,
