@@ -76,6 +76,7 @@ final class BoardController
         $name = mb_substr(trim((string) ($data['name'] ?? '')), 0, 120);
         $description = mb_substr(trim((string) ($data['description'] ?? '')), 0, 1000) ?: null;
         $category = array_key_exists($data['category'] ?? '', self::CATEGORIES) ? $data['category'] : 'general';
+        $isOpen = !empty($data['is_open']) ? 1 : 0;
 
         if ($name === '') {
             Flash::error('กรุณาใส่ชื่อกลุ่ม');
@@ -87,6 +88,7 @@ final class BoardController
             'name' => $name,
             'description' => $description,
             'category' => $category,
+            'is_open' => $isOpen,
             'created_by' => (int) $user['id'],
         ]);
 
@@ -108,8 +110,11 @@ final class BoardController
         $total = $this->board->topicCount((int) $group['id']);
         $topics = [];
         $pendingCount = 0;
+        $isOpen = (int) ($group['is_open'] ?? 0) === 1;
+        $isApprovedMember = $membership !== null && $membership['status'] === 'approved';
+        $canView = $isOpen || $isApprovedMember;
 
-        if ($membership && $membership['status'] === 'approved') {
+        if ($canView) {
             $topics = $this->board->topics((int) $group['id'], $offset, self::PER_PAGE);
             foreach ($topics as &$t) {
                 $t['created_ago'] = Thai::ago($t['created_at']);
@@ -126,6 +131,9 @@ final class BoardController
             'group' => $group,
             'membership' => $membership,
             'isCreator' => (int) $group['created_by'] === (int) $user['id'],
+            'isOpen' => $isOpen,
+            'isApprovedMember' => $isApprovedMember,
+            'canView' => $canView,
             'topics' => $topics,
             'pendingCount' => $pendingCount,
             'total' => $total,
@@ -362,6 +370,10 @@ final class BoardController
 
     private function requireMember(Request $request, array $group, int $userId): void
     {
+        if ((int) ($group['is_open'] ?? 0) === 1) {
+            return;
+        }
+
         $m = $this->board->membership((int) $group['id'], $userId);
         if ($m === null || $m['status'] !== 'approved') {
             throw new HttpForbiddenException($request, 'คุณไม่ได้เป็นสมาชิกที่ได้รับอนุมัติของกลุ่มนี้');

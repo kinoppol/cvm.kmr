@@ -27,6 +27,9 @@
                             <div class="grow">
                                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                                     <div class="list-title">{$g['name']}</div>
+                                    {if $g['is_open']}
+                                        <span class="badge badge-success" style="font-size:11px">🔓 กลุ่มเปิด</span>
+                                    {/if}
                                     {if $g['my_status'] === 'approved'}
                                         <span class="badge badge-success" style="font-size:11px">สมาชิก</span>
                                     {elseif $g['my_status'] === 'pending'}
