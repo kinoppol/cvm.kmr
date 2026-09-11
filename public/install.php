@@ -281,8 +281,8 @@ if ($action === 'step3') {
         $errors[] = 'รูปแบบอีเมลไม่ถูกต้อง';
     }
 
-    if (mb_strlen($admin['password']) < 10) {
-        $errors[] = 'รหัสผ่านต้องยาวอย่างน้อย 10 ตัวอักษร';
+    if (mb_strlen($admin['password']) < 8) {
+        $errors[] = 'รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร';
     } elseif (preg_match('/[A-Za-z]/', $admin['password']) !== 1 || preg_match('/\d/', $admin['password']) !== 1) {
         $errors[] = 'รหัสผ่านต้องมีทั้งตัวอักษรและตัวเลข';
     }
@@ -780,7 +780,7 @@ $defaults = [
                 <div class="field">
                     <label for="admin_password">รหัสผ่าน</label>
                     <input class="input" type="password" id="admin_password" name="password" autocomplete="new-password" required oninput="rvcStrength(this.value)">
-                    <div class="hint" id="strength">อย่างน้อย 10 ตัวอักษร มีทั้งตัวอักษรและตัวเลข</div>
+                    <div class="hint" id="strength">อย่างน้อย 8 ตัวอักษร มีทั้งตัวอักษรและตัวเลข</div>
                 </div>
                 <div class="field">
                     <label for="password_confirm">ยืนยันรหัสผ่าน</label>
@@ -800,7 +800,7 @@ $defaults = [
         function rvcStrength(value) {
             var box = document.getElementById('strength');
             var score = 0;
-            if (value.length >= 10) score++;
+            if (value.length >= 8) score++;
             if (/[A-Za-z]/.test(value) && /\d/.test(value)) score++;
             if (value.length >= 14) score++;
             if (/[^A-Za-z0-9]/.test(value)) score++;

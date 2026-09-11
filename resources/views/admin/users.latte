@@ -6,44 +6,93 @@
 <div class="page-head">
     <div>
         <h1>ผู้ใช้งานระบบ</h1>
-        <div class="sub">ครู {$counts['teacher'] ?? 0} · นักเรียน {$counts['student'] ?? 0} · ผู้ดูแล {$counts['admin'] ?? 0}</div>
+        <div class="sub">
+            ครู {$counts['teacher'] ?? 0} · นักเรียน {$counts['student'] ?? 0} · ผู้ดูแล {$counts['admin'] ?? 0}
+            {if $pendingCount > 0} · <span style="color:var(--warn)">รออนุมัติ {$pendingCount} คน</span>{/if}
+        </div>
     </div>
     <div class="actions">
         {var $tabs = ['' => 'ทั้งหมด', 'teacher' => 'ครู', 'student' => 'นักเรียน', 'admin' => 'ผู้ดูแล']}
         {foreach $tabs as $key => $label}
             <a href="{$base}/admin/users{if $key}?role={$key}{/if}" n:class="btn, btn-sm, $filter === $key ? btn-primary">{$label}</a>
         {/foreach}
+        <a href="{$base}/admin/users?role=pending" n:class="btn, btn-sm, $filter === 'pending' ? btn-primary">
+            รออนุมัติ{if $pendingCount > 0} ({$pendingCount}){/if}
+        </a>
     </div>
 </div>
 
-<div class="card">
-    <div class="table-scroll">
-        <table class="data">
-            <thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ-สกุล</th><th>บทบาท</th><th>สถานะ</th><th>เข้าใช้ล่าสุด</th><th></th></tr></thead>
-            <tbody>
-            {foreach $users as $u}
-                <tr>
-                    <td class="mono">{$u['username']}</td>
-                    <td>{$u['full_name']}</td>
-                    <td>{$u['role'] === 'admin' ? 'ผู้ดูแลระบบ' : ($u['role'] === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน')}</td>
-                    <td>
-                        {if $u['status'] === 'active'}<span class="chip chip-ok">ใช้งาน</span>
-                        {else}<span class="chip chip-err">ระงับ</span>{/if}
-                    </td>
-                    <td class="mono" style="font-size:12.5px">{$u['last_login_text']}</td>
-                    <td style="text-align:right">
-                        {if $u['role'] !== 'admin' && $u['status'] === 'active' && (int) $u['id'] !== (int) ($user['id'] ?? 0)}
-                            <form method="post" action="{$base}/admin/users/{$u['id']}/impersonate"
-                                  onsubmit="return confirm('เข้าใช้งานระบบในนาม {$u['full_name']}? จะกลับเป็นผู้ดูแลได้เมื่อกด กลับเป็นผู้ดูแล')">
-                                <input type="hidden" name="_token" value="{$csrf}">
-                                <button type="submit" class="btn btn-sm">สวมสิทธิ์</button>
-                            </form>
-                        {/if}
-                    </td>
-                </tr>
-            {/foreach}
-            </tbody>
-        </table>
+{if $filter === 'pending'}
+    {if $pendingUsers}
+        <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-scroll">
+                <table class="data">
+                    <thead>
+                        <tr><th>ชื่อผู้ใช้</th><th>ชื่อ-สกุล</th><th>อีเมล</th><th>สาขาวิชาที่สอน</th><th>สถานศึกษาที่สังกัด</th><th>สมัครเมื่อ</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    {foreach $pendingUsers as $u}
+                        <tr>
+                            <td class="mono">{$u['username']}</td>
+                            <td>{$u['full_name']}</td>
+                            <td class="mono" style="font-size:12.5px">{$u['email']}</td>
+                            <td>{$u['subject_area'] ?? '—'}</td>
+                            <td>{$u['institution'] ?? '—'}</td>
+                            <td class="mono" style="font-size:12.5px">{$u['created_text']}</td>
+                            <td style="text-align:right;white-space:nowrap">
+                                <form method="post" action="{$base}/admin/users/{$u['id']}/approve" style="display:inline-block">
+                                    <input type="hidden" name="_token" value="{$csrf}">
+                                    <button type="submit" class="btn btn-sm btn-primary">อนุมัติ</button>
+                                </form>
+                                <form method="post" action="{$base}/admin/users/{$u['id']}/reject" style="display:inline-block"
+                                      onsubmit="return confirm('ปฏิเสธคำขอสมัครของ {$u['full_name']}? บัญชีนี้จะถูกลบทิ้ง')">
+                                    <input type="hidden" name="_token" value="{$csrf}">
+                                    <button type="submit" class="btn btn-sm btn-ghost-danger">ปฏิเสธ</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {/foreach}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {else}
+        <div class="empty">
+            <h3>ไม่มีคำขอสมัครที่รออนุมัติ</h3>
+            <p>เมื่อมีครูสมัครเข้าใช้ระบบเอง รายการจะมาแสดงที่นี่</p>
+        </div>
+    {/if}
+{else}
+    <div class="card">
+        <div class="table-scroll">
+            <table class="data">
+                <thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ-สกุล</th><th>บทบาท</th><th>สถานะ</th><th>เข้าใช้ล่าสุด</th><th></th></tr></thead>
+                <tbody>
+                {foreach $users as $u}
+                    <tr>
+                        <td class="mono">{$u['username']}</td>
+                        <td>{$u['full_name']}</td>
+                        <td>{$u['role'] === 'admin' ? 'ผู้ดูแลระบบ' : ($u['role'] === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน')}</td>
+                        <td>
+                            {if $u['status'] === 'active'}<span class="chip chip-ok">ใช้งาน</span>
+                            {elseif $u['status'] === 'pending'}<span class="chip chip-warn">รออนุมัติ</span>
+                            {else}<span class="chip chip-err">ระงับ</span>{/if}
+                        </td>
+                        <td class="mono" style="font-size:12.5px">{$u['last_login_text']}</td>
+                        <td style="text-align:right">
+                            {if $u['role'] !== 'admin' && $u['status'] === 'active' && (int) $u['id'] !== (int) ($user['id'] ?? 0)}
+                                <form method="post" action="{$base}/admin/users/{$u['id']}/impersonate"
+                                      onsubmit="return confirm('เข้าใช้งานระบบในนาม {$u['full_name']}? จะกลับเป็นผู้ดูแลได้เมื่อกด กลับเป็นผู้ดูแล')">
+                                    <input type="hidden" name="_token" value="{$csrf}">
+                                    <button type="submit" class="btn btn-sm">สวมสิทธิ์</button>
+                                </form>
+                            {/if}
+                        </td>
+                    </tr>
+                {/foreach}
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
+{/if}
 {/block}

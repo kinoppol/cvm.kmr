@@ -27,6 +27,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 final class AiController
 {
     private const CAPS = [40, 60, 80, 0]; // 0 = ไม่จำกัด
+    private const TABS = ['overview', 'settings', 'quota'];
 
     public function __construct(
         private readonly View $view,
@@ -40,6 +41,11 @@ final class AiController
 
     public function index(Request $request, Response $response): Response
     {
+        $tab = (string) ($request->getQueryParams()['tab'] ?? 'overview');
+        if (!in_array($tab, self::TABS, true)) {
+            $tab = 'overview';
+        }
+
         $endpoint = $this->ai->defaultEndpoint();
         $period = sprintf('%04d-%02d', $this->settings->int('academic_year'), (int) date('n'));
         $cap = $this->settings->int('ai_monthly_quota', 60);
@@ -47,6 +53,7 @@ final class AiController
 
         return $this->view->render($response, 'admin/ai', [
             'page' => 'admin-ai',
+            'tab' => $tab,
             'endpoint' => $endpoint,
             'endpointCheckedAgo' => $endpoint && $endpoint['last_checked_at'] ? Thai::ago($endpoint['last_checked_at']) : null,
             'gpu' => $this->gpuStats($endpoint),
@@ -69,7 +76,7 @@ final class AiController
         if (!Csrf::check($data['_token'] ?? null)) {
             Flash::error('เซสชันหมดอายุ');
 
-            return $this->redirect($response);
+            return $this->redirect($response, 'quota');
         }
 
         $cap = (int) ($data['cap'] ?? 60);
@@ -81,7 +88,7 @@ final class AiController
         $this->auth->log('ai.cap.save', null, ['cap' => $cap]);
         Flash::success('บันทึกเพดานโควตาแล้ว · มีผลกับครูทุกคนในเดือนถัดไป');
 
-        return $this->redirect($response);
+        return $this->redirect($response, 'quota');
     }
 
     /** ผู้ดูแลบันทึกการตั้งค่าเครื่อง AI ส่วนกลาง แล้วตรวจสถานะให้ทันที */
@@ -91,7 +98,7 @@ final class AiController
         if (!Csrf::check($data['_token'] ?? null)) {
             Flash::error('เซสชันหมดอายุ');
 
-            return $this->redirect($response);
+            return $this->redirect($response, 'settings');
         }
 
         $current = $this->ai->defaultEndpoint();
@@ -102,13 +109,13 @@ final class AiController
         if (self::needsBaseUrl($kind) && !preg_match('~^https?://~i', $baseUrl)) {
             Flash::error('ที่อยู่ของเครื่องไม่ถูกต้อง ต้องขึ้นต้นด้วย http:// หรือ https://');
 
-            return $this->redirect($response);
+            return $this->redirect($response, 'settings');
         }
 
         if (self::needsKey($kind) && $apiKey === '' && empty($current['api_key_encrypted'])) {
             Flash::error('บริการนี้ต้องใช้รหัสเชื่อมต่อ กรุณาวางรหัสจากผู้ให้บริการ');
 
-            return $this->redirect($response);
+            return $this->redirect($response, 'settings');
         }
 
         // เลือก "อื่น ๆ" จากรายชื่อโมเดล = ใช้ชื่อที่ผู้ดูแลพิมพ์เอง
@@ -143,7 +150,7 @@ final class AiController
             ? Flash::success('บันทึกและเชื่อมต่อเครื่อง AI ส่วนกลางได้แล้ว · ' . $probe['message'])
             : Flash::error('บันทึกแล้ว แต่ยังต่อไม่ได้ · ' . $probe['message']);
 
-        return $this->redirect($response);
+        return $this->redirect($response, 'settings');
     }
 
     /** ทดสอบการเชื่อมต่อโดยไม่บันทึก (เรียกจากปุ่มในหน้าจอ) */
@@ -421,8 +428,11 @@ final class AiController
         }, $rows);
     }
 
-    private function redirect(Response $response): Response
+    /** พากลับไปหน้าเดิม — ระบุ $tab เพื่อให้ยังอยู่แท็บเดิมหลังบันทึกฟอร์ม */
+    private function redirect(Response $response, ?string $tab = null): Response
     {
-        return $response->withHeader('Location', Url::to('/admin/ai'))->withStatus(302);
+        $path = $tab !== null ? '/admin/ai?tab=' . $tab : '/admin/ai';
+
+        return $response->withHeader('Location', Url::to($path))->withStatus(302);
     }
 }

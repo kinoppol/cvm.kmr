@@ -18,6 +18,7 @@ use App\Controllers\LandingController;
 use App\Controllers\LessonController;
 use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
+use App\Controllers\RegisterController;
 use App\Controllers\ReviewController;
 use App\Controllers\SettingsController;
 use App\Controllers\StudentController;
@@ -31,6 +32,10 @@ return static function (App $app): void {
     $app->get('/login', [AuthController::class, 'show'])->setName('login');
     $app->post('/login', [AuthController::class, 'login']);
     $app->post('/logout', [AuthController::class, 'logout'])->setName('logout');
+
+    // ครูทั่วไปสมัครเข้าใช้ระบบเอง — บัญชีเริ่มที่สถานะ "รออนุมัติ" เสมอ
+    $app->get('/register', [RegisterController::class, 'show'])->setName('register');
+    $app->post('/register', [RegisterController::class, 'register']);
 
     $app->group('', function (RouteCollectorProxy $group): void {
         $group->get('/dashboard', [DashboardController::class, 'index'])->setName('dashboard');
@@ -121,6 +126,8 @@ return static function (App $app): void {
             $admin->post('/ai/endpoint/test', [AdminAiController::class, 'testEndpoint']);
             $admin->get('/users', [AdminUsersController::class, 'index'])->setName('admin.users');
             $admin->post('/users/{id:[0-9]+}/impersonate', [ImpersonationController::class, 'start']);
+            $admin->post('/users/{id:[0-9]+}/approve', [AdminUsersController::class, 'approve']);
+            $admin->post('/users/{id:[0-9]+}/reject', [AdminUsersController::class, 'reject']);
         })->add(new RoleMiddleware(['admin']));
     })->add(ViewContext::class)->add(AuthMiddleware::class);
 };
