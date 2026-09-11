@@ -15,6 +15,7 @@ use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
 use App\Controllers\ImpersonationController;
 use App\Controllers\LandingController;
+use App\Controllers\BoardController;
 use App\Controllers\UnitController;
 use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
@@ -87,6 +88,22 @@ return static function (App $app): void {
 
         $group->get('/review', [ReviewController::class, 'index'])
             ->setName('review')->add(new RoleMiddleware(['teacher']));
+
+        $group->group('/board', function (RouteCollectorProxy $b): void {
+            $b->get('', [BoardController::class, 'index'])->setName('board');
+            $b->get('/new', [BoardController::class, 'newGroup']);
+            $b->post('', [BoardController::class, 'saveGroup']);
+            $b->get('/{groupId:[0-9]+}', [BoardController::class, 'group']);
+            $b->post('/{groupId:[0-9]+}/join', [BoardController::class, 'join']);
+            $b->post('/{groupId:[0-9]+}/leave', [BoardController::class, 'leave']);
+            $b->get('/{groupId:[0-9]+}/members', [BoardController::class, 'members']);
+            $b->post('/{groupId:[0-9]+}/members/{userId:[0-9]+}/approve', [BoardController::class, 'approveMember']);
+            $b->post('/{groupId:[0-9]+}/members/{userId:[0-9]+}/reject', [BoardController::class, 'rejectMember']);
+            $b->get('/{groupId:[0-9]+}/topics/new', [BoardController::class, 'newTopic']);
+            $b->post('/{groupId:[0-9]+}/topics', [BoardController::class, 'saveTopic']);
+            $b->get('/{groupId:[0-9]+}/topics/{topicId:[0-9]+}', [BoardController::class, 'topic']);
+            $b->post('/{groupId:[0-9]+}/topics/{topicId:[0-9]+}/replies', [BoardController::class, 'saveReply']);
+        })->add(new RoleMiddleware(['teacher']));
 
         $group->group('/learn', function (RouteCollectorProxy $s): void {
             $s->get('', [StudentController::class, 'courses'])->setName('learn');

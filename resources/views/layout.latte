@@ -76,6 +76,7 @@
                     <span>✓</span>รอตรวจก่อนเผยแพร่
                     {if $rc > 0}<span class="nav-badge">{$rc}</span>{/if}
                 </a>
+                <a href="{$base}/board" n:class="$page === 'board' ? is-active"><span>💬</span>กระดานสนทนา</a>
                 <a href="{$base}/settings/ai" n:class="$page === 'settings' ? is-active"><span>✦</span>ผู้ช่วย AI ของฉัน</a>
                 <a href="{$base}/settings/appearance" n:class="$page === 'appearance' ? is-active"><span>◐</span>สีหลักของหน้าจอ</a>
             {/if}
@@ -112,7 +113,7 @@
             <a href="{$base}/review" n:class="$page === 'review' ? is-active">
                 <span>✓{if $rc > 0}<i class="mobile-badge">{$rc}</i>{/if}</span>รอตรวจ
             </a>
-            <a href="{$base}/settings/ai" n:class="$page === 'settings' ? is-active"><span>✦</span>ผู้ช่วย AI</a>
+            <a href="{$base}/board" n:class="$page === 'board' ? is-active"><span>💬</span>สนทนา</a>
         {elseif $role === 'student'}
             <a href="{$base}/learn" n:class="$page === 'learn' ? is-active"><span>▤</span>วิชาที่เรียน</a>
         {else}
