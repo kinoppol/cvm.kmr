@@ -145,7 +145,7 @@ final class RestructureUnits extends Migration
         $db->exec(sprintf(
             "ALTER TABLE `%s`
                 ADD COLUMN IF NOT EXISTS `pass_threshold` DECIMAL(5,2) NOT NULL DEFAULT 70.00
-                    COMMENT 'เกณฑ์ผ่านรายวิชา (%) รวมคะแนนทุกหน่วย' AFTER `status`",
+                    COMMENT 'เกณฑ์ผ่านรายวิชา (%%) รวมคะแนนทุกหน่วย' AFTER `status`",
             $this->table('courses')
         ));
 
