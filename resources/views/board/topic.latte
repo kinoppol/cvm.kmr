@@ -39,9 +39,9 @@
         <div style="font-weight:600;margin-bottom:12px">แสดงความคิดเห็น</div>
         <form method="post" action="{$base}/board/{$group['id']}/topics/{$topic['id']}/replies">
             <input type="hidden" name="_token" value="{$csrf}">
-            <textarea name="body" rows="5" required maxlength="10000"
+            <textarea name="body" class="input" rows="5" required maxlength="10000"
                       placeholder="เขียนความคิดเห็น..."
-                      style="width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);border-radius:8px;font:15px/1.7 var(--sans);resize:vertical;background:var(--surface);color:var(--ink)"></textarea>
+                      style="height:auto;font-size:15px;line-height:1.7"></textarea>
             <div style="margin-top:10px;text-align:right">
                 <button class="btn btn-primary">ส่งความคิดเห็น</button>
             </div>

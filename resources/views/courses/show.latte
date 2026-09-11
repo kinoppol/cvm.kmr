@@ -42,24 +42,24 @@
         </div>
     </div>
 
-    <div class=”course-body”>
+    <div class="course-body">
         {if $tab === 'units'}
-            <div class=”list”>
+            <div class="list">
                 {foreach $units as $u}
-                    <div class=”list-row”>
-                        <div class=”list-no”>{$u['no']}</div>
-                        <div class=”list-main”>
-                            <div class=”list-title”>{$u['title']}</div>
-                            <div class=”list-meta”>{$u['meta']}</div>
+                    <div class="list-row">
+                        <div class="list-no">{$u['no']}</div>
+                        <div class="list-main">
+                            <div class="list-title">{$u['title']}</div>
+                            <div class="list-meta">{$u['meta']}</div>
                         </div>
-                        <span class=”tag tag-{$u['tag_kind']}”>{$u['tag']}</span>
-                        <a class=”btn btn-sm” href=”{$base}/courses/{$course['id']}/units/{$u['id']}/edit”>แก้ไข</a>
+                        <span class="tag tag-{$u['tag_kind']}">{$u['tag']}</span>
+                        <a class="btn btn-sm" href="{$base}/courses/{$course['id']}/units/{$u['id']}/edit">แก้ไข</a>
                     </div>
                 {/foreach}
-                {if !$units}<div class=”empty”><h3>ยังไม่มีหน่วยการเรียน</h3><p>กดปุ่มด้านล่างเพื่อเพิ่มหน่วยการเรียนแรก</p></div>{/if}
+                {if !$units}<div class="empty"><h3>ยังไม่มีหน่วยการเรียน</h3><p>กดปุ่มด้านล่างเพื่อเพิ่มหน่วยการเรียนแรก</p></div>{/if}
             </div>
-            <div class=”list-actions”>
-                <a class=”btn” href=”{$base}/courses/{$course['id']}/units/new”>+ เพิ่มหน่วยการเรียน</a>
+            <div class="list-actions">
+                <a class="btn" href="{$base}/courses/{$course['id']}/units/new">+ เพิ่มหน่วยการเรียน</a>
             </div>
 
         {elseif $tab === 'students'}
