@@ -23,6 +23,22 @@
 </div>
 
 {if $filter === 'pending'}
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+        <div>
+            <div style="font-weight:600;font-size:14px">ต้องอนุมัติก่อนเข้าใช้งาน</div>
+            <div class="sub" style="font-size:12.5px">
+                {if $requireApproval}เปิดอยู่ — ครูที่สมัครใหม่จะอยู่ในสถานะรออนุมัติจนกว่าจะกดอนุมัติ{else}ปิดอยู่ — ครูที่สมัครใหม่จะเข้าใช้งานได้ทันที{/if}
+            </div>
+        </div>
+        <form method="post" action="{$base}/admin/users/settings" style="display:flex;align-items:center;gap:8px">
+            <input type="hidden" name="_token" value="{$csrf}">
+            <input type="hidden" name="require_approval" value="{if $requireApproval}0{else}1{/if}">
+            <button type="submit" class="btn btn-sm {if $requireApproval}btn-ghost-danger{else}btn-primary{/if}">
+                {if $requireApproval}ปิดการอนุมัติ{else}เปิดการอนุมัติ{/if}
+            </button>
+        </form>
+    </div>
+
     {if $pendingUsers}
         <div class="card" style="padding:0;overflow:hidden">
             <div class="table-scroll">

@@ -196,16 +196,16 @@ final class Auth
     }
 
     /**
-     * ครูสมัครสมาชิกเอง — บันทึกเป็นสถานะ "pending" เสมอ ต้องรอผู้ดูแลอนุมัติก่อนถึงจะล็อกอินได้
+     * ครูสมัครสมาชิกเอง — status ขึ้นกับการตั้งค่าของระบบ ('pending' หรือ 'active')
      *
      * @param array{username:string,email:string,password:string,full_name:string,phone:?string,subject_area:string,institution:string} $data
      */
-    public function registerTeacher(array $data): int
+    public function registerTeacher(array $data, string $status = 'pending'): int
     {
         $stmt = $this->db->prepare(sprintf(
             'INSERT INTO `%susers`
                 (username, email, password_hash, full_name, role, status, phone, subject_area, institution)
-             VALUES (?, ?, ?, ?, \'teacher\', \'pending\', ?, ?, ?)',
+             VALUES (?, ?, ?, ?, \'teacher\', ?, ?, ?, ?)',
             $this->prefix
         ));
         $stmt->execute([
@@ -213,6 +213,7 @@ final class Auth
             $data['email'],
             password_hash($data['password'], PASSWORD_DEFAULT),
             $data['full_name'],
+            $status,
             $data['phone'] ?: null,
             $data['subject_area'],
             $data['institution'],

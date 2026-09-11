@@ -128,6 +128,7 @@ return static function (App $app): void {
             $admin->post('/users/{id:[0-9]+}/impersonate', [ImpersonationController::class, 'start']);
             $admin->post('/users/{id:[0-9]+}/approve', [AdminUsersController::class, 'approve']);
             $admin->post('/users/{id:[0-9]+}/reject', [AdminUsersController::class, 'reject']);
+            $admin->post('/users/settings', [AdminUsersController::class, 'saveSettings']);
         })->add(new RoleMiddleware(['admin']));
     })->add(ViewContext::class)->add(AuthMiddleware::class);
 };

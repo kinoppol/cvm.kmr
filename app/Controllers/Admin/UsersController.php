@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Auth\Auth;
+use App\Domain\SettingsRepository;
 use App\Support\Csrf;
 use App\Support\Db;
 use App\Support\Flash;
@@ -24,6 +25,7 @@ final class UsersController
         private readonly View $view,
         private readonly Db $db,
         private readonly Auth $auth,
+        private readonly SettingsRepository $settings,
     ) {
     }
 
@@ -52,6 +54,7 @@ final class UsersController
                 'counts' => $counts,
                 'filter' => 'pending',
                 'pendingCount' => $pendingCount,
+                'requireApproval' => $this->settings->bool('registration_require_approval', true),
             ]);
         }
 
@@ -77,6 +80,7 @@ final class UsersController
             'counts' => $counts,
             'filter' => $role,
             'pendingCount' => $pendingCount,
+            'requireApproval' => $this->settings->bool('registration_require_approval', true),
         ]);
     }
 
@@ -128,6 +132,28 @@ final class UsersController
         Flash::warning('ปฏิเสธคำขอสมัครของ ' . $target['full_name'] . ' แล้ว');
 
         return $this->redirect($response);
+    }
+
+    /** บันทึกการตั้งค่าการสมัครสมาชิก — ต้องอนุมัติก่อนหรือเข้าใช้ได้เลย */
+    public function saveSettings(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirect($response);
+        }
+
+        $require = isset($data['require_approval']) && $data['require_approval'] === '1';
+        $this->settings->set('registration_require_approval', $require ? '1' : '0', 'boolean', 'registration');
+        $this->auth->log('registration.settings', null, ['require_approval' => $require]);
+
+        Flash::success($require
+            ? 'เปิดการอนุมัติแล้ว ครูที่สมัครใหม่จะต้องรอผู้ดูแลอนุมัติก่อน'
+            : 'ปิดการอนุมัติแล้ว ครูที่สมัครใหม่จะเข้าใช้งานได้ทันที'
+        );
+
+        return $response->withHeader('Location', Url::to('/admin/users?role=pending'))->withStatus(302);
     }
 
     private function redirect(Response $response): Response

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Auth\Auth;
+use App\Domain\SettingsRepository;
 use App\Support\Csrf;
 use App\Support\Flash;
 use App\Support\Url;
@@ -13,8 +14,8 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
- * ครูทั่วไปสมัครเข้าใช้ระบบเอง — บันทึกเป็นสถานะ "รออนุมัติ" เสมอ (`Auth::registerTeacher()`)
- * ต้องรอผู้ดูแลระบบตรวจสอบแล้วกดอนุมัติที่ /admin/users ก่อนจึงจะเข้าสู่ระบบได้
+ * ครูทั่วไปสมัครเข้าใช้ระบบเอง — สถานะขึ้นกับการตั้งค่า registration_require_approval
+ * ถ้าเปิดอยู่จะเป็น pending รอผู้ดูแลอนุมัติ / ถ้าปิดจะเป็น active ใช้งานได้ทันที
  */
 final class RegisterController
 {
@@ -24,6 +25,7 @@ final class RegisterController
     public function __construct(
         private readonly Auth $auth,
         private readonly View $view,
+        private readonly SettingsRepository $settings,
     ) {
     }
 
@@ -67,16 +69,24 @@ final class RegisterController
             return $this->view->render($response, 'auth/register', $form);
         }
 
-        $this->auth->registerTeacher($form + ['password' => $password]);
+        $requireApproval = $this->settings->bool('registration_require_approval', true);
+        $status = $requireApproval ? 'pending' : 'active';
+
+        $this->auth->registerTeacher($form + ['password' => $password], $status);
         $this->auth->log('register.teacher', $form['username'], [
             'institution' => $form['institution'],
             'subject_area' => $form['subject_area'],
+            'auto_approved' => !$requireApproval,
         ]);
 
-        Flash::success(
-            'ส่งคำขอสมัครสมาชิกแล้ว บัญชีของคุณจะใช้งานได้หลังผู้ดูแลระบบตรวจสอบและอนุมัติ '
-            . 'กรุณารอการติดต่อกลับ'
-        );
+        if ($requireApproval) {
+            Flash::success(
+                'ส่งคำขอสมัครสมาชิกแล้ว บัญชีของคุณจะใช้งานได้หลังผู้ดูแลระบบตรวจสอบและอนุมัติ '
+                . 'กรุณารอการติดต่อกลับ'
+            );
+        } else {
+            Flash::success('สมัครสมาชิกสำเร็จ เข้าสู่ระบบได้ทันที');
+        }
 
         return $this->redirect($response, '/login');
     }
