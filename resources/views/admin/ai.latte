@@ -11,6 +11,7 @@
         <a href="{$base}/admin/ai?tab=overview" n:class="tab, $tab === 'overview' ? is-active">ภาพรวม</a>
         <a href="{$base}/admin/ai?tab=settings" n:class="tab, $tab === 'settings' ? is-active">การตั้งค่า</a>
         <a href="{$base}/admin/ai?tab=quota" n:class="tab, $tab === 'quota' ? is-active">จำกัดการใช้งาน</a>
+        <a href="{$base}/admin/ai?tab=courses" n:class="tab, $tab === 'courses' ? is-active">ฟังก์ชัน AI รายวิชา</a>
     </div>
 
     {if $tab === 'overview'}
@@ -204,8 +205,75 @@
             {/if}
         </div>
     </div>
+
+    {elseif $tab === 'courses'}
+    <div class="card" style="margin-top:22px;padding:0;overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--line)">
+            <strong>ฟังก์ชัน AI ต่อรายวิชา</strong>
+            <div class="hint" style="margin-top:6px">
+                เปิด/ปิดการใช้งานฟังก์ชัน AI แต่ละอย่างเป็นรายวิชา — เหมาะกับช่วงทดสอบฟังก์ชันใหม่ที่ยังไม่พร้อมให้ครูทุกคนเห็น
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="data ai-feature-table">
+                <thead>
+                <tr>
+                    <th>รายวิชา</th>
+                    <th>ครูผู้สอน</th>
+                    <th class="num">ออกข้อสอบด้วย AI</th>
+                    <th class="num">แผนการจัดการเรียนรู้ด้วย AI</th>
+                </tr>
+                </thead>
+                <tbody>
+                {foreach $courses as $c}
+                    <tr data-course-row="{$c['id']}">
+                        <td>
+                            <div style="font-weight:500">{$c['code']}</div>
+                            <div class="hint">{$c['name']}{if $c['classroom_name']} · {$c['classroom_name']}{/if}</div>
+                            <form method="post" action="{$base}/admin/ai/courses/{$c['id']}/features" id="feat-form-{$c['id']}" class="ai-feat-form" hidden>
+                                <input type="hidden" name="_token" value="{$csrf}">
+                                <input type="hidden" name="ai_quiz_enabled" value="{$c['ai_quiz_enabled']}" class="feat-quiz-input">
+                                <input type="hidden" name="ai_lesson_plan_enabled" value="{$c['ai_lesson_plan_enabled']}" class="feat-plan-input">
+                            </form>
+                        </td>
+                        <td>{$c['teacher_name']}</td>
+                        <td class="num">
+                            <button type="button" n:class="switch, feat-toggle, $c['ai_quiz_enabled'] ? is-on"
+                                    aria-label="สลับฟังก์ชันออกข้อสอบ"
+                                    onclick="rvcToggleAiFeature({$c['id']}, 'quiz', this)">
+                                <span class="switch-dot"></span>
+                            </button>
+                        </td>
+                        <td class="num">
+                            <button type="button" n:class="switch, feat-toggle, $c['ai_lesson_plan_enabled'] ? is-on"
+                                    aria-label="สลับฟังก์ชันแผนการจัดการเรียนรู้"
+                                    onclick="rvcToggleAiFeature({$c['id']}, 'plan', this)">
+                                <span class="switch-dot"></span>
+                            </button>
+                        </td>
+                    </tr>
+                {/foreach}
+                {if !$courses}
+                    <tr><td colspan="4" class="hint" style="text-align:center;padding:24px">ยังไม่มีรายวิชาที่เปิดใช้งาน</td></tr>
+                {/if}
+                </tbody>
+            </table>
+        </div>
+    </div>
     {/if}
 </div>
+
+<script>
+function rvcToggleAiFeature(courseId, feature, btn) {
+    var form = document.getElementById('feat-form-' + courseId);
+    if (!form) { return; }
+    var on = !btn.classList.contains('is-on');
+    btn.classList.toggle('is-on', on);
+    var input = form.querySelector(feature === 'quiz' ? '.feat-quiz-input' : '.feat-plan-input');
+    input.value = on ? '1' : '0';
+    form.requestSubmit();
+}
+</script>
 
 <script>
 (function () {

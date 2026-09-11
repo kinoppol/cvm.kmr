@@ -28,6 +28,9 @@ trait OwnsCourse
         if ((int) $course['teacher_id'] !== (int) $user['id']) {
             throw new HttpForbiddenException($request, 'คุณไม่ได้เป็นผู้สอนรายวิชานี้');
         }
+        if ((int) ($course['ai_lesson_plan_enabled'] ?? 1) !== 1) {
+            throw new HttpForbiddenException($request, 'ผู้ดูแลระบบยังไม่เปิดใช้งานฟังก์ชันแผนการจัดการเรียนรู้ด้วย AI สำหรับรายวิชานี้');
+        }
 
         return $course;
     }

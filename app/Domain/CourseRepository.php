@@ -131,6 +131,29 @@ final class CourseRepository
         return self::CARD_COLORS[$index % count(self::CARD_COLORS)];
     }
 
+    /** @return list<array<string,mixed>> รายวิชาที่ยังเปิดใช้งานทั้งหมด สำหรับผู้ดูแลตั้งค่าฟังก์ชัน AI */
+    public function allActiveForAdmin(): array
+    {
+        return $this->db->all(
+            'SELECT c.id, c.code, c.name, c.ai_quiz_enabled, c.ai_lesson_plan_enabled,
+                    u.full_name AS teacher_name, cr.name AS classroom_name
+             FROM {courses} c
+             JOIN {users} u ON u.id = c.teacher_id
+             LEFT JOIN {classrooms} cr ON cr.id = c.classroom_id
+             WHERE c.status = \'active\'
+             ORDER BY u.full_name, c.code'
+        );
+    }
+
+    /** เปิด/ปิดฟังก์ชัน AI ของรายวิชานี้ */
+    public function setAiFeatures(int $id, bool $quizEnabled, bool $lessonPlanEnabled): void
+    {
+        $this->db->update('courses', [
+            'ai_quiz_enabled' => $quizEnabled ? 1 : 0,
+            'ai_lesson_plan_enabled' => $lessonPlanEnabled ? 1 : 0,
+        ], ['id' => $id]);
+    }
+
     /** ครูคนนี้เปิดให้แสดงรายวิชาในหน้าแรกสาธารณะหรือไม่ (ถือว่าเปิดถ้ามีอย่างน้อยหนึ่งวิชาที่ตั้งไว้) */
     public function landingEnabledForTeacher(int $teacherId): bool
     {

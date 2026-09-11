@@ -15,22 +15,28 @@
                     </div>
                 </div>
                 <a class="btn" href="{$base}/courses/{$course['id']}/edit" style="align-self:center">แก้ไขรายวิชา</a>
-                <div class="ai-menu" data-ai-menu>
-                    <button type="button" class="btn btn-ai" data-ai-toggle>
-                        <span>✦</span> ให้ AI ช่วย <span class="caret">▾</span>
-                    </button>
-                    <div class="ai-menu-panel" hidden>
-                        <a href="{$base}/courses/{$course['id']}/quizzes/create">
-                            <div class="t">ออกข้อสอบจากหน่วยการเรียน</div>
-                            <div class="d">เลือกหน่วยแล้วให้ร่างข้อสอบให้</div>
-                        </a>
-                        <a href="{$base}/courses/{$course['id']}/lesson-plan">
-                            <div class="t">ทำแผนการจัดการเรียนรู้</div>
-                            <div class="d">ร่างตามแบบฟอร์ม สอศ.</div>
-                        </a>
-                        <div class="ai-menu-note">ผลลัพธ์ทุกชิ้นจะอยู่ในสถานะรอครูตรวจก่อนเผยแพร่</div>
+                {if $course['ai_quiz_enabled'] || $course['ai_lesson_plan_enabled']}
+                    <div class="ai-menu" data-ai-menu>
+                        <button type="button" class="btn btn-ai" data-ai-toggle>
+                            <span>✦</span> ให้ AI ช่วย <span class="caret">▾</span>
+                        </button>
+                        <div class="ai-menu-panel" hidden>
+                            {if $course['ai_quiz_enabled']}
+                                <a href="{$base}/courses/{$course['id']}/quizzes/create">
+                                    <div class="t">ออกข้อสอบจากหน่วยการเรียน</div>
+                                    <div class="d">เลือกหน่วยแล้วให้ร่างข้อสอบให้</div>
+                                </a>
+                            {/if}
+                            {if $course['ai_lesson_plan_enabled']}
+                                <a href="{$base}/courses/{$course['id']}/lesson-plan">
+                                    <div class="t">ทำแผนการจัดการเรียนรู้</div>
+                                    <div class="d">ร่างตามแบบฟอร์ม สอศ.</div>
+                                </a>
+                            {/if}
+                            <div class="ai-menu-note">ผลลัพธ์ทุกชิ้นจะอยู่ในสถานะรอครูตรวจก่อนเผยแพร่</div>
+                        </div>
                     </div>
-                </div>
+                {/if}
             </div>
 
             <div class="tabs">

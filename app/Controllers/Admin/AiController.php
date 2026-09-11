@@ -11,6 +11,7 @@ use App\AI\KeyCipher;
 use App\AI\OpenAiCompatibleProvider;
 use App\Auth\Auth;
 use App\Domain\AiRepository;
+use App\Domain\CourseRepository;
 use App\Domain\SettingsRepository;
 use App\Support\Csrf;
 use App\Support\Db;
@@ -27,7 +28,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 final class AiController
 {
     private const CAPS = [40, 60, 80, 0]; // 0 = ไม่จำกัด
-    private const TABS = ['overview', 'settings', 'quota'];
+    private const TABS = ['overview', 'settings', 'quota', 'courses'];
 
     public function __construct(
         private readonly View $view,
@@ -36,6 +37,7 @@ final class AiController
         private readonly Db $db,
         private readonly Auth $auth,
         private readonly KeyCipher $cipher,
+        private readonly CourseRepository $courses,
     ) {
     }
 
@@ -67,7 +69,32 @@ final class AiController
             'cap' => $cap,
             'capTotal' => $cap > 0 ? $cap * $teacherCount : 0,
             'teacherCount' => $teacherCount,
+            'courses' => $tab === 'courses' ? $this->courses->allActiveForAdmin() : [],
         ]);
+    }
+
+    /** ผู้ดูแลเปิด/ปิดฟังก์ชัน AI ของรายวิชานี้ (บางฟังก์ชันยังไม่ผ่านการทดสอบ จึงจำกัดเป็นรายวิชาได้) */
+    public function saveCourseFeatures(Request $request, Response $response, array $args): Response
+    {
+        $data = (array) $request->getParsedBody();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirect($response, 'courses');
+        }
+
+        $courseId = (int) $args['id'];
+        $quizEnabled = !empty($data['ai_quiz_enabled']);
+        $lessonPlanEnabled = !empty($data['ai_lesson_plan_enabled']);
+
+        $this->courses->setAiFeatures($courseId, $quizEnabled, $lessonPlanEnabled);
+        $this->auth->log('ai.course_features.save', 'course#' . $courseId, [
+            'quiz' => $quizEnabled,
+            'lesson_plan' => $lessonPlanEnabled,
+        ]);
+        Flash::success('บันทึกการตั้งค่าฟังก์ชัน AI แล้ว');
+
+        return $this->redirect($response, 'courses');
     }
 
     public function saveCap(Request $request, Response $response): Response

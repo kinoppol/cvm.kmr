@@ -143,6 +143,7 @@ return static function (App $app): void {
             $admin->post('/ai/cap', [AdminAiController::class, 'saveCap']);
             $admin->post('/ai/endpoint', [AdminAiController::class, 'saveEndpoint']);
             $admin->post('/ai/endpoint/test', [AdminAiController::class, 'testEndpoint']);
+            $admin->post('/ai/courses/{id:[0-9]+}/features', [AdminAiController::class, 'saveCourseFeatures']);
             $admin->get('/users', [AdminUsersController::class, 'index'])->setName('admin.users');
             $admin->post('/users/{id:[0-9]+}/impersonate', [ImpersonationController::class, 'start']);
             $admin->post('/users/{id:[0-9]+}/approve', [AdminUsersController::class, 'approve']);

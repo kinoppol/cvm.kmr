@@ -485,6 +485,9 @@ final class QuizWizardController
         if ((int) $course['teacher_id'] !== $teacherId) {
             throw new HttpForbiddenException($request, 'คุณไม่ได้เป็นผู้สอนรายวิชานี้');
         }
+        if ((int) ($course['ai_quiz_enabled'] ?? 1) !== 1) {
+            throw new HttpForbiddenException($request, 'ผู้ดูแลระบบยังไม่เปิดใช้งานฟังก์ชันออกข้อสอบด้วย AI สำหรับรายวิชานี้');
+        }
 
         return $course;
     }
