@@ -1,5 +1,7 @@
 /* หน้าแรกสาธารณะ — ดีไซน์ยุค AI ที่เน้นสาขาวิชาการตลาด/ธุรกิจค้าปลีก (สาขานำร่อง)
-   โทนสีม่วง-คราม (AI/เทคโนโลยี) ผสมสีอำพัน (การค้า/ป้ายราคา) บนพื้นหลังสว่างสะอาดตา */
+   โทนสีม่วง-คราม (AI/เทคโนโลยี) ผสมสีอำพัน (การค้า/ป้ายราคา) บนพื้นหลังสว่างสะอาดตา
+   ผู้ช่วย AI เป็นแค่ส่วนเสริม (พูดถึงราว 1 ใน 4 จุด) ไม่ใช่พระเอกของหน้า — ตัวหน้าเน้นภาพรวม
+   หลักสูตรธุรกิจค้าปลีก ส่วนโทนภาพรวมเลี่ยงกรอบ/เส้นขอบแข็ง ใช้ระยะห่างและเงานุ่ม ๆ แทน */
 @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap");
 
 :root {
@@ -33,29 +35,31 @@
     color: var(--lp-heading); margin: 0; font-weight: 700; line-height: 1.3;
     letter-spacing: -.01em;
 }
-.lp a { color: inherit; text-decoration: none; }
+/* :not(.lp-btn) กันไว้ไม่ให้แย่งสีข้อความปุ่ม — ตัวเลือก .lp a มี specificity สูงกว่า
+   .lp-btn-solid/.lp-btn-ghost-light เฉย ๆ (class+element ชนะ class เดี่ยว) จนสีขาวของปุ่ม
+   ถูกแทนด้วยสีตัวอักษรทั่วไปที่จางกว่ามาก อ่านแทบไม่เห็นบนพื้นเข้ม */
+.lp a:not(.lp-btn) { color: inherit; text-decoration: none; }
+.lp a.lp-btn { text-decoration: none; }
 .lp-wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
 .lp-mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
 
 /* ---------- ปุ่มและป้าย ---------- */
 .lp-btn {
     display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; border-radius: 12px;
-    font: 600 14.5px/1 "Sarabun", sans-serif;
+    font: 700 14.5px/1 "Sarabun", sans-serif;
     border: 1.5px solid var(--lp-line); color: var(--lp-heading); background: var(--lp-surface); cursor: pointer;
     transition: .22s ease;
 }
 .lp-btn:hover { border-color: var(--lp-primary); color: var(--lp-primary); transform: translateY(-1px); }
 .lp-btn-solid {
-    border-color: transparent; color: #fff;
-    background: linear-gradient(135deg, var(--lp-primary), var(--lp-violet));
-    box-shadow: 0 10px 26px rgba(79, 70, 229, .32);
+    border-color: transparent; color: #fff; background: var(--lp-primary);
+    box-shadow: 0 10px 24px rgba(79, 70, 229, .3);
 }
-.lp-btn-solid:hover { color: #fff; box-shadow: 0 14px 32px rgba(79, 70, 229, .42); }
+.lp-btn-solid:hover { color: #fff; background: var(--lp-primary-dark); box-shadow: 0 14px 30px rgba(79, 70, 229, .4); }
 .lp-btn-ghost-light {
-    border-color: rgba(255, 255, 255, .28); color: #fff; background: rgba(255, 255, 255, .06);
-    backdrop-filter: blur(6px);
+    border-color: rgba(255, 255, 255, .55); color: #fff; background: rgba(255, 255, 255, .1);
 }
-.lp-btn-ghost-light:hover { border-color: rgba(255, 255, 255, .6); color: #fff; }
+.lp-btn-ghost-light:hover { border-color: #fff; color: #fff; background: rgba(255, 255, 255, .18); }
 .lp-btn-sm { padding: 10px 20px; font-size: 13.5px; }
 
 .lp-pill {
@@ -63,7 +67,7 @@
     font: 600 12.5px/1 "Sarabun", sans-serif; letter-spacing: .2px;
 }
 .lp-pill-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lp-emerald); flex: none; }
-.lp-pill-dark { background: rgba(255, 255, 255, .08); color: #fff; border: 1px solid rgba(255, 255, 255, .16); }
+.lp-pill-dark { background: rgba(255, 255, 255, .1); color: #fff; border: 1px solid rgba(255, 255, 255, .2); }
 .lp-pill-amber { background: #FEF3E2; color: var(--lp-accent-ink); }
 .lp-pill-amber .lp-pill-dot { background: var(--lp-accent); }
 
@@ -90,103 +94,60 @@
 /* ---------- hero ---------- */
 .lp-hero {
     position: relative; overflow: hidden;
-    background: radial-gradient(1100px 620px at 82% -12%, rgba(124, 58, 237, .55), transparent 62%),
-        radial-gradient(900px 500px at 6% 12%, rgba(245, 158, 11, .28), transparent 60%),
+    background: radial-gradient(1100px 620px at 82% -12%, rgba(124, 58, 237, .5), transparent 62%),
+        radial-gradient(900px 500px at 6% 12%, rgba(245, 158, 11, .24), transparent 60%),
         linear-gradient(165deg, var(--lp-dark) 0%, var(--lp-dark2) 62%, #171B4A 100%);
 }
 .lp-hero::before {
     /* ตารางเทคโนโลยีจาง ๆ พาดพื้นหลัง */
-    content: ""; position: absolute; inset: 0; opacity: .35; pointer-events: none;
+    content: ""; position: absolute; inset: 0; opacity: .3; pointer-events: none;
     background-image:
         linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
     background-size: 44px 44px;
     mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
 }
-.lp-hero-inner {
-    position: relative; z-index: 1; padding: 84px 0 92px;
-    display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 56px; align-items: center;
+/* ไอคอนจาง ๆ ประดับพื้นหลัง — สื่อถึงธุรกิจค้าปลีก ไม่แย่งความสนใจจากข้อความ */
+.lp-hero-deco {
+    position: absolute; z-index: 0; color: rgba(255, 255, 255, .05); pointer-events: none;
 }
+.lp-hero-deco.d1 { top: 10%; left: -40px; width: 220px; height: 220px; transform: rotate(-12deg); }
+.lp-hero-deco.d2 { bottom: -30px; right: -30px; width: 260px; height: 260px; transform: rotate(8deg); }
+
+.lp-hero-inner { position: relative; z-index: 1; padding: 88px 0 120px; }
+.lp-hero-copy { max-width: 700px; margin: 0 auto; text-align: center; }
 .lp-eyebrow { font: 600 13px/1 "IBM Plex Mono", monospace; letter-spacing: 1px; color: #C9C4FF; text-transform: uppercase; }
 .lp-hero h1 { font-size: 44px; margin: 18px 0 0; color: #fff; }
 .lp-hero h1 .lp-accent-text {
     background: linear-gradient(100deg, #FBBF24, #F59E0B);
     -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.lp-hero-lead { margin-top: 18px; max-width: 560px; color: #C7C9E0; font-size: 16.5px; }
-.lp-hero-ctas { margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; }
-.lp-hero-pills { margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap; }
+.lp-hero-lead { margin: 18px auto 0; max-width: 560px; color: #C7C9E0; font-size: 16.5px; }
+.lp-hero-ctas { margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.lp-hero-pills { margin-top: 26px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
-/* การ์ดลอยฝั่งขวาของ hero — จำลองผู้ช่วย AI แนะนำสินค้าขายดี */
-.lp-hero-art { position: relative; min-height: 380px; }
-.lp-ai-card {
-    position: relative; z-index: 2; margin-left: auto; max-width: 380px;
-    background: rgba(18, 22, 52, .72); border: 1px solid rgba(255, 255, 255, .14);
-    border-radius: 20px; padding: 22px; backdrop-filter: blur(18px);
-    box-shadow: var(--lp-shadow-lg);
+/* แถบสถิติแบบการ์ดลอย คาบเกี่ยวขอบล่างของฮีโร่ — แทนเส้นแบ่งสีตรง ๆ ระหว่างสอง section */
+.lp-stats-bar { position: relative; z-index: 2; margin-top: -56px; padding: 0 24px; }
+.lp-stats-bar-inner {
+    max-width: 1132px; margin: 0 auto; background: var(--lp-surface);
+    border-radius: 20px; box-shadow: var(--lp-shadow-lg);
+    display: grid; grid-template-columns: repeat(4, 1fr);
 }
-.lp-ai-card-head { display: flex; align-items: center; gap: 10px; }
-.lp-ai-avatar {
-    width: 34px; height: 34px; border-radius: 10px; flex: none;
-    background: linear-gradient(135deg, var(--lp-violet), var(--lp-primary));
-    display: grid; place-items: center; color: #fff; font-size: 16px;
-}
-.lp-ai-card-head strong { color: #fff; font-size: 14.5px; }
-.lp-ai-card-head span { display: block; font-size: 12px; color: #9CA1C7; margin-top: 1px; }
-.lp-ai-msg {
-    margin-top: 16px; padding: 13px 14px; border-radius: 13px 13px 13px 4px;
-    background: rgba(255, 255, 255, .07); color: #E4E5F5; font-size: 13.5px; line-height: 1.7;
-}
-.lp-ai-chips { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-.lp-ai-chip {
-    padding: 7px 12px; border-radius: 999px; font: 600 12px/1 "Sarabun", sans-serif;
-    background: rgba(245, 158, 11, .16); color: #FCD34D; border: 1px solid rgba(245, 158, 11, .3);
-}
-.lp-ai-stats { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.lp-ai-stats div { background: rgba(255, 255, 255, .05); border-radius: 12px; padding: 10px 8px; text-align: center; }
-.lp-ai-stats b { display: block; color: #fff; font-size: 17px; font-family: "IBM Plex Mono", monospace; }
-.lp-ai-stats span { display: block; margin-top: 3px; font-size: 10.5px; color: #9CA1C7; }
-
-.lp-float-badge {
-    position: absolute; z-index: 3; display: flex; align-items: center; gap: 8px;
-    background: #fff; border-radius: 14px; padding: 10px 14px; box-shadow: var(--lp-shadow-lg);
-    font: 600 12.5px/1.3 "Sarabun", sans-serif; color: var(--lp-heading);
-    animation: lp-float 5s ease-in-out infinite;
-}
-.lp-float-badge .lp-emoji { font-size: 18px; }
-.lp-float-badge.b1 { top: -6px; left: -10px; animation-delay: 0s; }
-.lp-float-badge.b2 { bottom: 6px; left: 14px; animation-delay: 1.2s; }
-@keyframes lp-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-.lp-stats-bar {
-    position: relative; z-index: 1;
-    background: var(--lp-surface); border-bottom: 1px solid var(--lp-line);
-    margin-top: -1px;
-}
-.lp-stats-bar .lp-wrap {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
-}
-.lp-stat { padding: 26px 18px; text-align: center; border-left: 1px solid var(--lp-line); }
+.lp-stat { padding: 28px 18px; text-align: center; border-left: 1px solid var(--lp-line); }
 .lp-stat:first-child { border-left: none; }
-.lp-stat b { display: block; font: 700 26px/1 "Sarabun", sans-serif; color: var(--lp-heading); }
+.lp-stat b { display: block; font: 700 25px/1 "Sarabun", sans-serif; color: var(--lp-heading); }
 .lp-stat span { display: block; margin-top: 6px; font-size: 12.5px; color: var(--lp-muted); }
 
 /* ---------- จุดเด่น / features ---------- */
-.lp-features { padding: 88px 0 96px; background: var(--lp-surface); }
+.lp-features { padding: 118px 0 96px; background: var(--lp-surface); }
 .lp-section-title { max-width: 640px; margin: 0 auto 50px; text-align: center; }
 .lp-section-title .lp-eyebrow { color: var(--lp-primary); }
 .lp-section-title h2 { font-size: 32px; margin-top: 12px; }
 .lp-section-title p { margin: 14px 0 0; }
 
-.lp-feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
-.lp-feat {
-    padding: 28px 24px; border-radius: 18px; background: var(--lp-section);
-    border: 1px solid var(--lp-line); transition: .25s ease;
-}
-.lp-feat:hover { transform: translateY(-4px); box-shadow: var(--lp-shadow); background: var(--lp-surface); }
+.lp-feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.lp-feat { padding: 26px 22px; border-radius: 18px; transition: .25s ease; }
+.lp-feat:hover { background: var(--lp-section); }
 .lp-feat-icon {
     width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center;
     background: linear-gradient(135deg, var(--lp-primary), var(--lp-violet)); color: #fff; font-size: 21px;
@@ -215,10 +176,9 @@
 .lp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
 .lp-card {
     background: var(--lp-surface); border-radius: 16px; box-shadow: var(--lp-shadow);
-    border: 1px solid var(--lp-line);
     overflow: hidden; transition: .3s ease; display: flex; flex-direction: column;
 }
-.lp-card:hover { box-shadow: var(--lp-shadow-lg); transform: translateY(-4px); border-color: transparent; }
+.lp-card:hover { box-shadow: var(--lp-shadow-lg); transform: translateY(-4px); }
 .lp-card-img {
     height: 118px; display: flex; align-items: flex-end; justify-content: space-between;
     padding: 16px 18px; color: #fff; position: relative;
@@ -248,15 +208,15 @@
 }
 .lp-card-meta { font-size: 12.5px; color: var(--lp-muted); }
 .lp-card-foot .lp-more {
-    font: 600 12px/1 "Sarabun", sans-serif; color: var(--lp-primary);
-    border: 1px solid var(--lp-line); border-radius: 8px; padding: 8px 14px; transition: .25s;
+    font: 700 12px/1 "Sarabun", sans-serif; color: var(--lp-primary);
+    background: var(--lp-section); border-radius: 8px; padding: 8px 14px; transition: .25s;
     white-space: nowrap;
 }
-.lp-card:hover .lp-more { background: var(--lp-primary); border-color: var(--lp-primary); color: #fff; }
+.lp-card:hover .lp-more { background: var(--lp-primary); color: #fff; }
 
 .lp-empty {
     max-width: 560px; margin: 0 auto; text-align: center; background: var(--lp-surface);
-    border-radius: 18px; box-shadow: var(--lp-shadow); padding: 60px 44px; border: 1px solid var(--lp-line);
+    border-radius: 18px; box-shadow: var(--lp-shadow); padding: 60px 44px;
 }
 .lp-empty .lp-feat-icon { margin: 0 auto; }
 .lp-empty h3 { font-size: 21px; margin-top: 20px; }
@@ -278,6 +238,8 @@
 .lp-cta h2 { color: #fff; font-size: 27px; max-width: 480px; }
 .lp-cta p { margin: 10px 0 0; color: #DCDBFF; max-width: 480px; }
 .lp-cta-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+.lp-cta-ctas .lp-btn-solid { background: #fff; color: #4338CA; box-shadow: none; }
+.lp-cta-ctas .lp-btn-solid:hover { background: #F3F0FF; color: #4338CA; }
 
 /* ---------- footer ---------- */
 .lp-footer { background: var(--lp-dark); color: #9195B8; padding: 60px 0 24px; }
@@ -295,17 +257,15 @@
 .lp-footer-bottom a { color: #C9C4FF; }
 
 @media (max-width: 980px) {
-    .lp-hero-inner { grid-template-columns: 1fr; }
-    .lp-hero-art { min-height: 0; margin-top: 20px; }
-    .lp-ai-card { margin: 0 auto; }
     .lp-feat-grid { grid-template-columns: repeat(2, 1fr); }
     .lp-grid { grid-template-columns: repeat(2, 1fr); }
-    .lp-stats-bar .lp-wrap { grid-template-columns: repeat(2, 1fr); }
-    .lp-stat:nth-child(3) { border-left: none; }
-    .lp-stat:nth-child(1), .lp-stat:nth-child(2) { border-bottom: 1px solid var(--lp-line); padding-bottom: 22px; }
+    .lp-stats-bar-inner { grid-template-columns: repeat(2, 1fr); }
+    .lp-stat:nth-child(1), .lp-stat:nth-child(2) { border-bottom: 1px solid var(--lp-line); }
+    .lp-stat:nth-child(odd) { border-left: none; }
+    .lp-stat:nth-child(even) { border-left: 1px solid var(--lp-line); }
 }
 @media (max-width: 640px) {
-    .lp-hero-inner { padding: 60px 0 64px; }
+    .lp-hero-inner { padding: 60px 0 88px; }
     .lp-hero h1 { font-size: 32px; }
     .lp-feat-grid { grid-template-columns: 1fr; }
     .lp-grid { grid-template-columns: 1fr; }
@@ -313,5 +273,5 @@
     .lp-header .lp-wrap { height: 64px; }
     .lp-body-area, .lp-features { padding: 56px 0; }
     .lp-cta-inner { flex-direction: column; align-items: flex-start; }
-    .lp-float-badge { display: none; }
+    .lp-hero-deco { display: none; }
 }
