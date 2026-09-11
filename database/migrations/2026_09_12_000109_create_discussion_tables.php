@@ -14,7 +14,7 @@ final class CreateDiscussionTables extends Migration
 
     public function up(Runner $run): void
     {
-        $run->execute(sprintf(
+        $run->exec(sprintf(
             'CREATE TABLE IF NOT EXISTS %s (
                 id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 name        VARCHAR(120) NOT NULL,
@@ -30,7 +30,7 @@ final class CreateDiscussionTables extends Migration
             $this->options()
         ));
 
-        $run->execute(sprintf(
+        $run->exec(sprintf(
             'CREATE TABLE IF NOT EXISTS %s (
                 group_id    INT UNSIGNED NOT NULL,
                 user_id     INT UNSIGNED NOT NULL,
@@ -45,7 +45,7 @@ final class CreateDiscussionTables extends Migration
             $this->options()
         ));
 
-        $run->execute(sprintf(
+        $run->exec(sprintf(
             'CREATE TABLE IF NOT EXISTS %s (
                 id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 group_id    INT UNSIGNED NOT NULL,
@@ -63,7 +63,7 @@ final class CreateDiscussionTables extends Migration
             $this->options()
         ));
 
-        $run->execute(sprintf(
+        $run->exec(sprintf(
             'CREATE TABLE IF NOT EXISTS %s (
                 id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 topic_id    INT UNSIGNED NOT NULL,
@@ -81,9 +81,9 @@ final class CreateDiscussionTables extends Migration
 
     public function down(Runner $run): void
     {
-        $run->execute('DROP TABLE IF EXISTS ' . $this->table('discussion_replies'));
-        $run->execute('DROP TABLE IF EXISTS ' . $this->table('discussion_topics'));
-        $run->execute('DROP TABLE IF EXISTS ' . $this->table('discussion_members'));
-        $run->execute('DROP TABLE IF EXISTS ' . $this->table('discussion_groups'));
+        $run->exec('DROP TABLE IF EXISTS ' . $this->table('discussion_replies'));
+        $run->exec('DROP TABLE IF EXISTS ' . $this->table('discussion_topics'));
+        $run->exec('DROP TABLE IF EXISTS ' . $this->table('discussion_members'));
+        $run->exec('DROP TABLE IF EXISTS ' . $this->table('discussion_groups'));
     }
 }
