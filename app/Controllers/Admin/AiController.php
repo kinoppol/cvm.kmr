@@ -4,19 +4,25 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 
+use App\AI\AiUnavailableException;
+use App\AI\GoogleAiProvider;
+use App\AI\HttpClient;
+use App\AI\KeyCipher;
+use App\AI\OpenAiCompatibleProvider;
 use App\Auth\Auth;
 use App\Domain\AiRepository;
 use App\Domain\SettingsRepository;
 use App\Support\Csrf;
 use App\Support\Db;
 use App\Support\Flash;
+use App\Support\Thai;
 use App\Support\Url;
 use App\Support\View;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
- * แดชบอร์ดผู้ดูแล: สถานะเครื่อง AI ของวิทยาลัย คิวงาน การใช้งานรายวัน/รายครู และเพดานโควตา
+ * แดชบอร์ดผู้ดูแล: สถานะเครื่อง AI ของส่วนกลาง คิวงาน การใช้งานรายวัน/รายครู และเพดานโควตา
  */
 final class AiController
 {
@@ -28,6 +34,7 @@ final class AiController
         private readonly SettingsRepository $settings,
         private readonly Db $db,
         private readonly Auth $auth,
+        private readonly KeyCipher $cipher,
     ) {
     }
 
@@ -41,6 +48,7 @@ final class AiController
         return $this->view->render($response, 'admin/ai', [
             'page' => 'admin-ai',
             'endpoint' => $endpoint,
+            'endpointCheckedAgo' => $endpoint && $endpoint['last_checked_at'] ? Thai::ago($endpoint['last_checked_at']) : null,
             'gpu' => $this->gpuStats($endpoint),
             'models' => $this->loadedModels($endpoint),
             'queue' => $this->queueJobs(),
@@ -74,6 +82,227 @@ final class AiController
         Flash::success('บันทึกเพดานโควตาแล้ว · มีผลกับครูทุกคนในเดือนถัดไป');
 
         return $this->redirect($response);
+    }
+
+    /** ผู้ดูแลบันทึกการตั้งค่าเครื่อง AI ส่วนกลาง แล้วตรวจสถานะให้ทันที */
+    public function saveEndpoint(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirect($response);
+        }
+
+        $current = $this->ai->defaultEndpoint();
+        $kind = self::kind($data['kind'] ?? '');
+        $baseUrl = self::baseUrlFor($kind, (string) ($data['base_url'] ?? ''));
+        $apiKey = trim((string) ($data['api_key'] ?? ''));
+
+        if (self::needsBaseUrl($kind) && !preg_match('~^https?://~i', $baseUrl)) {
+            Flash::error('ที่อยู่ของเครื่องไม่ถูกต้อง ต้องขึ้นต้นด้วย http:// หรือ https://');
+
+            return $this->redirect($response);
+        }
+
+        if (self::needsKey($kind) && $apiKey === '' && empty($current['api_key_encrypted'])) {
+            Flash::error('บริการนี้ต้องใช้รหัสเชื่อมต่อ กรุณาวางรหัสจากผู้ให้บริการ');
+
+            return $this->redirect($response);
+        }
+
+        // เลือก "อื่น ๆ" จากรายชื่อโมเดล = ใช้ชื่อที่ผู้ดูแลพิมพ์เอง
+        $model = trim((string) ($data['model'] ?? ''));
+        if ($model === '__custom') {
+            $model = trim((string) ($data['model_custom'] ?? ''));
+        }
+
+        $fields = [
+            'name' => trim((string) ($data['name'] ?? '')) ?: 'AI ของส่วนกลาง',
+            'base_url' => $baseUrl,
+            'kind' => $kind,
+            'model' => $model,
+            'notes' => trim((string) ($data['notes'] ?? '')) ?: null,
+            'is_default' => 1,
+        ];
+
+        if ($apiKey !== '') {
+            $fields['api_key_encrypted'] = $this->cipher->encrypt($apiKey);
+        } elseif (($data['clear_key'] ?? '') === '1') {
+            $fields['api_key_encrypted'] = null;
+        }
+
+        $id = $this->ai->saveEndpoint($current ? (int) $current['id'] : null, $fields);
+
+        // ตรวจทันทีหลังบันทึก เพื่อให้สถานะที่ครูเห็นตรงกับความเป็นจริง
+        $probe = $this->probeEndpoint($kind, $baseUrl, $this->endpointKey($apiKey, $current), $fields['model']);
+        $this->ai->markEndpointChecked($id, $probe['ok'] ? 'online' : 'offline');
+
+        $this->auth->log('ai.endpoint.save', $baseUrl, ['kind' => $kind, 'ok' => $probe['ok']]);
+        $probe['ok']
+            ? Flash::success('บันทึกและเชื่อมต่อเครื่อง AI ส่วนกลางได้แล้ว · ' . $probe['message'])
+            : Flash::error('บันทึกแล้ว แต่ยังต่อไม่ได้ · ' . $probe['message']);
+
+        return $this->redirect($response);
+    }
+
+    /** ทดสอบการเชื่อมต่อโดยไม่บันทึก (เรียกจากปุ่มในหน้าจอ) */
+    public function testEndpoint(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            return $this->json($response, ['ok' => false, 'message' => 'เซสชันหมดอายุ'], 419);
+        }
+
+        $kind = self::kind($data['kind'] ?? '');
+        $baseUrl = self::baseUrlFor($kind, (string) ($data['base_url'] ?? ''));
+        $current = $this->ai->defaultEndpoint();
+
+        $probe = $this->probeEndpoint(
+            $kind,
+            $baseUrl,
+            $this->endpointKey(trim((string) ($data['api_key'] ?? '')), $current),
+            trim((string) ($data['model'] ?? ''))
+        );
+
+        // อัปเดตสถานะที่เก็บไว้เฉพาะตอนที่ทดสอบ "ของจริง" คือปลายทางและโมเดลตรงกับที่บันทึกไว้
+        // (การกดดึงรายชื่อโมเดลจะไม่ส่งชื่อโมเดลมา จึงไม่ควรไปเปลี่ยนสถานะ)
+        $sameEndpoint = $current !== null
+            && $baseUrl === (string) $current['base_url']
+            && trim((string) ($data['model'] ?? '')) === (string) $current['model'];
+
+        if ($sameEndpoint) {
+            $this->ai->markEndpointChecked((int) $current['id'], $probe['ok'] ? 'online' : 'offline');
+        }
+
+        return $this->json($response, $probe);
+    }
+
+    /** ชนิดการเชื่อมต่อที่รองรับ — ค่าอื่นถือเป็น ollama */
+    public static function kind(mixed $raw): string
+    {
+        $kind = (string) $raw;
+
+        return in_array($kind, ['ollama', 'openai_compatible', 'openrouter', 'google'], true) ? $kind : 'ollama';
+    }
+
+    /** บริการสำเร็จรูปมีที่อยู่ตายตัว ผู้ดูแลไม่ต้องกรอกเอง */
+    private static function baseUrlFor(string $kind, string $typed): string
+    {
+        return match ($kind) {
+            'openrouter' => OpenAiCompatibleProvider::OPENROUTER_BASE,
+            'google' => GoogleAiProvider::BASE,
+            default => rtrim(trim($typed), '/'),
+        };
+    }
+
+    private static function needsBaseUrl(string $kind): bool
+    {
+        return $kind === 'ollama' || $kind === 'openai_compatible';
+    }
+
+    private static function needsKey(string $kind): bool
+    {
+        return $kind === 'openrouter' || $kind === 'google';
+    }
+
+    /** ใช้รหัสที่พิมพ์เข้ามาก่อน ถ้าเว้นว่างไว้ให้ใช้รหัสเดิมที่เก็บไว้ */
+    private function endpointKey(string $typed, ?array $current): string
+    {
+        if ($typed !== '') {
+            return $typed;
+        }
+        if ($current === null || empty($current['api_key_encrypted'])) {
+            return '';
+        }
+
+        try {
+            return $this->cipher->decrypt((string) $current['api_key_encrypted']);
+        } catch (\RuntimeException) {
+            return '';
+        }
+    }
+
+    /**
+     * ยิงจริงไปที่เครื่องส่วนกลางเพื่อดูว่าใช้งานได้ไหม และมีโมเดลอะไรบ้าง
+     *
+     * @return array{ok:bool,message:string,models:list<string>}
+     */
+    private function probeEndpoint(string $kind, string $baseUrl, string $apiKey, string $model): array
+    {
+        if (self::needsBaseUrl($kind) && !preg_match('~^https?://~i', $baseUrl)) {
+            return ['ok' => false, 'message' => 'ที่อยู่ของเครื่องไม่ถูกต้อง ต้องขึ้นต้นด้วย http:// หรือ https://', 'models' => []];
+        }
+        if (self::needsKey($kind) && $apiKey === '') {
+            return ['ok' => false, 'message' => 'บริการนี้ต้องใช้รหัสเชื่อมต่อ กรุณาวางรหัสจากผู้ให้บริการ', 'models' => []];
+        }
+
+        try {
+            if ($kind === 'google') {
+                $probe = GoogleAiProvider::probe($apiKey);
+
+                return [
+                    'ok' => (bool) $probe['ok'],
+                    'message' => $probe['message'],
+                    'models' => $probe['models'] ?? [],
+                ];
+            }
+
+            if ($kind === 'openai_compatible' || $kind === 'openrouter') {
+                $probe = OpenAiCompatibleProvider::probe(
+                    $apiKey,
+                    $baseUrl,
+                    $model !== '' ? $model : null,
+                    new HttpClient(),
+                    verifyKey: self::needsKey($kind)
+                );
+
+                return [
+                    'ok' => (bool) $probe['ok'],
+                    'message' => $probe['message'],
+                    'models' => $probe['models'] ?? [],
+                ];
+            }
+
+            $res = (new HttpClient(connectTimeout: 4, timeout: 10))->request('GET', $baseUrl . '/api/tags');
+            if ($res['status'] >= 400) {
+                return ['ok' => false, 'message' => HttpClient::describeError($res['status'], $res['body']), 'models' => []];
+            }
+
+            $models = [];
+            foreach (json_decode($res['body'], true)['models'] ?? [] as $m) {
+                if (isset($m['name'])) {
+                    $models[] = (string) $m['name'];
+                }
+            }
+
+            if ($models === []) {
+                return ['ok' => false, 'message' => 'ต่อกับเครื่องได้ แต่ยังไม่มีโมเดลติดตั้งอยู่ (ollama pull …)', 'models' => []];
+            }
+
+            if ($model !== '' && !in_array($model, $models, true)) {
+                return [
+                    'ok' => false,
+                    'message' => 'ไม่พบโมเดล ' . $model . ' บนเครื่องนี้ · มีอยู่: ' . implode(', ', array_slice($models, 0, 5)),
+                    'models' => $models,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'message' => 'ต่อกับเครื่องได้ · พบโมเดล ' . count($models) . ' รายการ',
+                'models' => $models,
+            ];
+        } catch (AiUnavailableException $e) {
+            return ['ok' => false, 'message' => $e->getMessage(), 'models' => []];
+        }
+    }
+
+    private function json(Response $response, array $data, int $status = 200): Response
+    {
+        $response->getBody()->write((string) json_encode($data, JSON_UNESCAPED_UNICODE));
+
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8')->withStatus($status);
     }
 
     /** @return list<array{label:string,value:string,pct:int,tone:string}> */

@@ -162,6 +162,6 @@ final class ReviewRepository
             return 'AI ของฉัน' . ($mode ? ' · ' . $mode : '');
         }
 
-        return 'AI วิทยาลัย';
+        return 'AI ส่วนกลาง';
     }
 }

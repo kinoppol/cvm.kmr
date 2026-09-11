@@ -1,0 +1,424 @@
+{*
+    ช่องสนทนาลอย — ถามผู้ช่วย AI ได้ทุกหน้า และสั่งให้ช่วยทำงานบางอย่าง (เช่น สร้างรายวิชา) ได้
+    ต้องมี $base และ $csrf (View แชร์ให้ทุกหน้าอยู่แล้ว) และเปิดให้เฉพาะครู/ผู้ดูแล
+*}
+{var $isTeacher = ($user['role'] ?? '') === 'teacher'}
+<button type="button" class="aichat-fab" id="aichatFab" aria-expanded="false" aria-controls="aichatPanel">
+    <span class="aichat-fab-icon">✦</span>
+    <span class="aichat-fab-text">ผู้ช่วย AI</span>
+    <span class="aichat-fab-dot" id="aichatFabDot" hidden></span>
+</button>
+
+<section class="aichat-panel" id="aichatPanel" role="dialog" aria-label="ช่องสนทนากับผู้ช่วย AI"
+         data-base="{$base}" data-token="{$csrf}" hidden>
+    <header class="aichat-head">
+        <span class="aichat-head-icon">✦</span>
+        <div class="aichat-head-title">
+            ผู้ช่วย AI
+            <div class="aichat-head-sub" id="aichatStatus">กำลังตรวจการเชื่อมต่อ…</div>
+        </div>
+        <button type="button" class="aichat-icon-btn" id="aichatClear" title="ล้างบทสนทนา">↺</button>
+        <button type="button" class="aichat-icon-btn" id="aichatClose" title="ปิด">✕</button>
+    </header>
+
+    <div class="aichat-log" id="aichatLog" aria-live="polite">
+        <div class="aichat-empty" id="aichatEmpty">
+            <div class="aichat-empty-title">ถามหรือสั่งงานผู้ช่วยได้เลย</div>
+            <div class="aichat-empty-body">
+                {if $isTeacher}สั่งให้ช่วยสร้างรายวิชาได้ ผู้ช่วยจะเสนอข้อมูลมาให้ตรวจก่อน แล้วครูค่อยกดยืนยัน · {/if}การพูดคุยไม่ตัดโควตาของส่วนกลาง
+            </div>
+            <div class="aichat-suggest">
+                {if $isTeacher}
+                    <button type="button" class="aichat-chip-btn" data-say="ช่วยสร้างรายวิชา งานเชื่อมโลหะเบื้องต้น ให้หน่อย">ช่วยสร้างรายวิชา งานเชื่อมโลหะเบื้องต้น ให้หน่อย</button>
+                {/if}
+                <button type="button" class="aichat-chip-btn" data-say="สวัสดี ทดสอบการเชื่อมต่อ">สวัสดี ทดสอบการเชื่อมต่อ</button>
+                <button type="button" class="aichat-chip-btn" data-say="อธิบายกฎของโอห์มแบบสั้น ๆ">อธิบายกฎของโอห์มแบบสั้น ๆ</button>
+            </div>
+        </div>
+    </div>
+
+    <form class="aichat-form" id="aichatForm">
+        <div class="aichat-files" id="aichatFiles" hidden></div>
+        <div class="aichat-form-row">
+            <button type="button" class="aichat-attach" id="aichatAttachBtn"
+                    title="แนบไฟล์ให้ผู้ช่วยอ่าน (txt, csv, docx, pdf · ไม่เกิน 2 MB)">📎</button>
+            <input type="file" id="aichatFile" hidden
+                   accept=".txt,.md,.csv,.json,.xml,.html,.htm,.docx,.pdf">
+            <textarea class="aichat-input" id="aichatInput" rows="1" maxlength="8000"
+                      placeholder="พิมพ์คำถามหรือคำสั่ง… วางข้อความยาว ๆ ได้"
+                      title="Enter ส่ง · Shift+Enter ขึ้นบรรทัดใหม่"></textarea>
+            <button type="submit" class="aichat-send" id="aichatSend" title="ส่ง">➤</button>
+        </div>
+    </form>
+</section>
+
+<script>
+(function () {
+    var panel = document.getElementById('aichatPanel');
+    if (!panel) { return; }
+
+    var base = panel.dataset.base, token = panel.dataset.token;
+    var fab = document.getElementById('aichatFab');
+    var fabDot = document.getElementById('aichatFabDot');
+    var log = document.getElementById('aichatLog');
+    var empty = document.getElementById('aichatEmpty');
+    var statusEl = document.getElementById('aichatStatus');
+    var form = document.getElementById('aichatForm');
+    var input = document.getElementById('aichatInput');
+    var sendBtn = document.getElementById('aichatSend');
+    var filesBox = document.getElementById('aichatFiles');
+    var attachBtn = document.getElementById('aichatAttachBtn');
+    var fileInput = document.getElementById('aichatFile');
+    var source = null, checked = false, busy = false;
+
+    function setStatus(text, tone) {
+        statusEl.textContent = text;
+        statusEl.className = 'aichat-head-sub is-' + (tone || 'ok');
+        fabDot.hidden = false;
+        fabDot.className = 'aichat-fab-dot is-' + (tone || 'ok');
+    }
+
+    function checkStatus() {
+        if (checked) { return; }
+        checked = true;
+        fetch(base + '/ai/chat/status', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d.ok) { setStatus('พร้อมใช้งาน · ' + d.chip, 'ok'); }
+                else { setStatus(d.message || 'ยังใช้งานไม่ได้', 'err'); }
+            })
+            .catch(function () { setStatus('ตรวจการเชื่อมต่อไม่สำเร็จ', 'err'); });
+    }
+
+    function scroll() { log.scrollTop = log.scrollHeight; }
+
+    function bubble(who, text) {
+        if (empty) { empty.hidden = true; }
+        var el = document.createElement('div');
+        el.className = 'aichat-msg is-' + who;
+        el.textContent = text || '';
+        log.appendChild(el);
+        scroll();
+        return el;
+    }
+
+    function note(text, tone) {
+        var el = document.createElement('div');
+        el.className = 'aichat-note is-' + (tone || 'ok');
+        el.textContent = text;
+        log.appendChild(el);
+        scroll();
+        return el;
+    }
+
+    /** การ์ดยืนยันก่อนสร้างรายวิชาจริง */
+    function actionCard(d) {
+        if (empty) { empty.hidden = true; }
+
+        var el = document.createElement('div');
+        el.className = 'aichat-card';
+        el.innerHTML =
+            '<div class="aichat-card-title">สร้างรายวิชานี้ให้ไหม</div>' +
+            '<dl class="aichat-card-rows">' +
+            '<div><dt>รหัสวิชา</dt><dd class="mono" data-f="code"></dd></div>' +
+            '<div><dt>ชื่อวิชา</dt><dd data-f="name"></dd></div>' +
+            '<div><dt>หน่วยกิต</dt><dd class="mono" data-f="credits"></dd></div>' +
+            '<div><dt>ทฤษฎี/ปฏิบัติ</dt><dd class="mono" data-f="hours"></dd></div>' +
+            '</dl>' +
+            '<div class="aichat-card-desc" data-f="description"></div>' +
+            '<div class="aichat-card-btns">' +
+            '<button type="button" class="aichat-card-ok">สร้างรายวิชา</button>' +
+            '<button type="button" class="aichat-card-no">ไม่ใช่ตอนนี้</button>' +
+            '</div>';
+
+        var set = function (field, value) {
+            var node = el.querySelector('[data-f="' + field + '"]');
+            if (node) { node.textContent = value; }
+        };
+        set('code', d.code);
+        set('name', d.name);
+        set('credits', d.credits);
+        set('hours', d.theory_hours + ' / ' + d.practice_hours + ' ชม.');
+        set('description', d.description || '');
+
+        el.querySelector('.aichat-card-no').addEventListener('click', function () {
+            el.remove();
+            note('ยกเลิกการสร้างรายวิชาแล้ว', 'ok');
+        });
+
+        el.querySelector('.aichat-card-ok').addEventListener('click', function () {
+            var ok = el.querySelector('.aichat-card-ok');
+            ok.disabled = true; ok.textContent = 'กำลังสร้าง…';
+
+            var body = new URLSearchParams({
+                _token: token, code: d.code, name: d.name, credits: d.credits,
+                theory_hours: d.theory_hours, practice_hours: d.practice_hours,
+                description: d.description || ''
+            });
+
+            fetch(base + '/ai/chat/create-course', {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            }).then(function (r) { return r.json(); }).then(function (res) {
+                if (!res.ok) {
+                    ok.disabled = false; ok.textContent = 'สร้างรายวิชา';
+                    note(res.message || 'สร้างรายวิชาไม่สำเร็จ', 'err');
+                    return;
+                }
+                el.remove();
+                var done = document.createElement('div');
+                done.className = 'aichat-note is-ok';
+                done.textContent = res.message + ' · ';
+                var a = document.createElement('a');
+                a.href = res.url; a.textContent = 'เปิดรายวิชา';
+                done.appendChild(a);
+                log.appendChild(done);
+                scroll();
+            }).catch(function () {
+                ok.disabled = false; ok.textContent = 'สร้างรายวิชา';
+                note('เรียกสร้างรายวิชาไม่สำเร็จ', 'err');
+            });
+        });
+
+        log.appendChild(el);
+        scroll();
+    }
+
+    /* ---------- ไฟล์แนบ ---------- */
+    var attached = [];   // { id, name, chars }
+
+    function renderFiles() {
+        filesBox.innerHTML = '';
+        filesBox.hidden = attached.length === 0;
+
+        attached.forEach(function (f, i) {
+            var chip = document.createElement('span');
+            chip.className = 'aichat-file';
+
+            var label = document.createElement('span');
+            label.textContent = '📄 ' + f.name + ' · ' + f.chars.toLocaleString('th-TH') + ' ตัวอักษร';
+            chip.appendChild(label);
+
+            var x = document.createElement('button');
+            x.type = 'button';
+            x.textContent = '✕';
+            x.title = 'เอาไฟล์ออก';
+            x.addEventListener('click', function () { attached.splice(i, 1); renderFiles(); });
+            chip.appendChild(x);
+
+            filesBox.appendChild(chip);
+        });
+    }
+
+    function upload(file) {
+        if (attached.length >= 3) { note('แนบได้สูงสุด 3 ไฟล์ต่อหนึ่งคำถาม', 'err'); return; }
+
+        attachBtn.disabled = true;
+        var pending = note('กำลังอ่านไฟล์ ' + file.name + '…', 'ok');
+
+        var body = new FormData();
+        body.append('_token', token);
+        body.append('file', file);
+
+        fetch(base + '/ai/chat/attach', { method: 'POST', credentials: 'same-origin', body: body })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                attachBtn.disabled = false;
+                pending.remove();
+                if (!d.ok) { note(d.message || 'อ่านไฟล์ไม่สำเร็จ', 'err'); return; }
+                attached.push({ id: d.id, name: d.name, chars: d.chars });
+                renderFiles();
+                input.focus();
+            })
+            .catch(function () {
+                attachBtn.disabled = false;
+                pending.remove();
+                note('อัปโหลดไฟล์ไม่สำเร็จ', 'err');
+            });
+    }
+
+    attachBtn.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', function () {
+        if (fileInput.files[0]) { upload(fileInput.files[0]); }
+        fileInput.value = '';
+    });
+
+    // ลากไฟล์มาวางบนช่องสนทนาได้เลย
+    panel.addEventListener('dragover', function (e) { e.preventDefault(); panel.classList.add('is-dropping'); });
+    panel.addEventListener('dragleave', function () { panel.classList.remove('is-dropping'); });
+    panel.addEventListener('drop', function (e) {
+        e.preventDefault();
+        panel.classList.remove('is-dropping');
+        if (e.dataTransfer.files[0]) { upload(e.dataTransfer.files[0]); }
+    });
+
+    function setBusy(on) {
+        busy = on;
+        sendBtn.disabled = on;
+        input.disabled = on;
+    }
+
+    function stop() {
+        if (source) { source.close(); source = null; }
+        setBusy(false);
+    }
+
+    function ask(message) {
+        if (busy || (!message && attached.length === 0)) { return; }
+        var files = attached.slice();
+        var mine = bubble('me', message);
+
+        // แสดงชื่อไฟล์ที่ส่งไปด้วยใต้ข้อความของครู
+        if (files.length) {
+            var listed = document.createElement('div');
+            listed.className = 'aichat-msg-files';
+            listed.textContent = files.map(function (f) { return '📄 ' + f.name; }).join('  ');
+            mine.appendChild(listed);
+        }
+
+        attached = [];
+        renderFiles();
+        var reply = bubble('ai', '');
+        reply.classList.add('is-typing');
+        reply.innerHTML = '<i></i><i></i><i></i>';
+        setBusy(true);
+
+        var started = Date.now(), text = '', first = true, acted = false;
+
+        // ฝากข้อความไว้ก่อนด้วย POST แล้วค่อยเปิดสตรีมด้วย id
+        // (EventSource เปิดได้เฉพาะ GET และข้อความไทยยาว ๆ จะทำให้ URL เกินขีดจำกัดของเซิร์ฟเวอร์)
+        var prep = new URLSearchParams({ _token: token, q: message });
+        if (files.length) {
+            prep.set('attach', files.map(function (f) { return f.id; }).join(','));
+        }
+
+        fetch(base + '/ai/chat/prepare', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: prep
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (!d.ok) {
+                reply.remove();
+                note(d.message || 'ส่งข้อความไม่สำเร็จ', 'err');
+                setBusy(false);
+                return;
+            }
+            openStream(base + '/ai/chat/stream?_token=' + encodeURIComponent(token) + '&p=' + encodeURIComponent(d.id));
+        }).catch(function () {
+            reply.remove();
+            note('ส่งข้อความไม่สำเร็จ กรุณาลองใหม่', 'err');
+            setBusy(false);
+        });
+
+        function openStream(url) {
+        source = new EventSource(url);
+
+        source.addEventListener('meta', function (e) {
+            setStatus('พร้อมใช้งาน · ' + JSON.parse(e.data).chip, 'ok');
+        });
+
+        source.addEventListener('delta', function (e) {
+            if (first) { first = false; reply.classList.remove('is-typing'); reply.textContent = ''; }
+            text += JSON.parse(e.data).text;
+            reply.textContent = text;
+            scroll();
+        });
+
+        source.addEventListener('working', function (e) {
+            reply.classList.remove('is-typing');
+            reply.textContent = JSON.parse(e.data).message;
+            first = false;
+            scroll();
+        });
+
+        // ผู้ช่วยเสนอให้สร้างรายวิชา — ต้องให้ครูตรวจและกดยืนยันก่อนเสมอ
+        source.addEventListener('action', function (e) {
+            var d = JSON.parse(e.data);
+            acted = true;
+            reply.remove();
+            actionCard(d);
+        });
+
+        source.addEventListener('done', function (e) {
+            var d = JSON.parse(e.data);
+            var secs = ((Date.now() - started) / 1000).toFixed(1);
+            reply.classList.remove('is-typing');
+            // การ์ดยืนยันบอกผลด้วยตัวเองอยู่แล้ว ไม่ต้องมีบรรทัดสรุปจำนวนตัวอักษรซ้ำ
+            if (acted) {
+                // ไม่ต้องแจ้งอะไรเพิ่ม
+            } else if (d.chars === 0) {
+                reply.remove();
+                note('ผู้ช่วยไม่ได้ตอบข้อความกลับมา · ลองย่อข้อความให้สั้นลง แนบเป็นไฟล์แทน หรือลองใหม่อีกครั้ง', 'err');
+            } else {
+                note('ตอบกลับ ' + d.chars + ' ตัวอักษร · ใช้เวลา ' + secs + ' วินาที · เชื่อมต่อปกติ', 'ok');
+            }
+            stop();
+        });
+
+        source.addEventListener('error', function (e) {
+            var msg = 'ตอบกลับไม่สำเร็จ กรุณาลองใหม่';
+            try { msg = JSON.parse(e.data).message || msg; } catch (err) { return; }
+            reply.remove();
+            note(msg, 'err');
+            setStatus(msg, 'err');
+            stop();
+        });
+
+        source.onerror = function () {
+            if (!busy) { return; }
+            reply.classList.remove('is-typing');
+            if (!text) { reply.remove(); note('การเชื่อมต่อขาดระหว่างทาง กรุณาลองใหม่', 'err'); }
+            stop();
+        };
+        }
+    }
+
+    function open() {
+        panel.hidden = false;
+        fab.setAttribute('aria-expanded', 'true');
+        checkStatus();
+        setTimeout(function () { input.focus(); }, 40);
+    }
+
+    function close() {
+        panel.hidden = true;
+        fab.setAttribute('aria-expanded', 'false');
+        stop();
+    }
+
+    fab.addEventListener('click', function () { panel.hidden ? open() : close(); });
+    document.getElementById('aichatClose').addEventListener('click', close);
+    document.getElementById('aichatClear').addEventListener('click', function () {
+        stop();
+        log.innerHTML = '';
+        if (empty) { empty.hidden = false; log.appendChild(empty); }
+    });
+
+    log.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('.aichat-chip-btn') : null;
+        if (btn) { ask(btn.dataset.say); }
+    });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var v = input.value.trim();
+        if (!v && attached.length === 0) { return; }
+        input.value = '';
+        input.style.height = 'auto';
+        ask(v);
+    });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+    });
+    input.addEventListener('input', function () {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 220) + 'px';
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !panel.hidden) { close(); }
+    });
+})();
+</script>

@@ -8,6 +8,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
     <link rel="stylesheet" href="{$base}/assets/css/app.css">
+    {if isset($ui)}
+        {* สีหลักที่ผู้ดูแลหรือครูเลือกไว้ — เขียน # ในเทมเพลตเอง เพราะ Latte จะ escape # ใน CSS *}
+        <style>
+            :root {
+                --brand: #{$ui['brand']};
+                --brandInk: #{$ui['brandInk']};
+                --brandSoft: #{$ui['brandSoft']};
+                --brandLine: #{$ui['brandLine']};
+            }
+            :root[data-theme="dark"] {
+                --brand: #{$ui['darkBrand']};
+                --brandInk: #{$ui['darkInk']};
+                --brandSoft: #{$ui['darkSoft']};
+                --brandLine: #{$ui['darkLine']};
+            }
+        </style>
+    {/if}
     <script>
         (function () {
             var saved = null;
@@ -60,6 +77,7 @@
                     {if $rc > 0}<span class="nav-badge">{$rc}</span>{/if}
                 </a>
                 <a href="{$base}/settings/ai" n:class="$page === 'settings' ? is-active"><span>✦</span>ผู้ช่วย AI ของฉัน</a>
+                <a href="{$base}/settings/appearance" n:class="$page === 'appearance' ? is-active"><span>◐</span>สีหลักของหน้าจอ</a>
             {/if}
 
             {if $role === 'student'}
@@ -71,6 +89,7 @@
                 <a href="{$base}/admin/ai" n:class="$page === 'admin-ai' ? is-active"><span>▣</span>เครื่อง AI และโควตา</a>
                 <a href="{$base}/admin/users" n:class="$page === 'admin-users' ? is-active"><span>◉</span>ผู้ใช้งาน</a>
                 <a href="{$base}/admin/migrations" n:class="$page === 'migrations' ? is-active"><span>▤</span>จัดการฐานข้อมูล</a>
+                <a href="{$base}/settings/appearance" n:class="$page === 'appearance' ? is-active"><span>◐</span>สีหลักของหน้าจอ</a>
             {/if}
 
             <div class="spacer"></div>
@@ -102,6 +121,10 @@
         {/if}
     </nav>
 </div>
+
+{if $role === 'teacher' || $role === 'admin'}
+    {include '_partials/ai-chat.latte'}
+{/if}
 
 {if isset($toast) && $toast}
     <div class="toast" id="rvcToast">{$toast}</div>

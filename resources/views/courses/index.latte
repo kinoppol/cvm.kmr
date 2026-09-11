@@ -4,8 +4,13 @@
 
 {block content}
 <div class="dash">
-    <div class="dash-greeting">รายวิชาของฉัน</div>
-    <div class="dash-sub">{$term ?? ''} · {count($courses)} รายวิชา</div>
+    <div class="courses-head">
+        <div class="grow">
+            <div class="dash-greeting">รายวิชาของฉัน</div>
+            <div class="dash-sub">{$term ?? ''} · {count($courses)} รายวิชา</div>
+        </div>
+        <a class="btn btn-primary" href="{$base}/courses/new">+ เพิ่มรายวิชา</a>
+    </div>
 
     {if $courses}
         <form method="post" action="{$base}/courses/landing-visibility" class="landing-toggle">
@@ -45,7 +50,8 @@
     {else}
         <div class="empty" style="margin-top:26px">
             <h3>ยังไม่มีรายวิชาที่สอนในภาคเรียนนี้</h3>
-            <p>ติดต่อผู้ดูแลระบบเพื่อเพิ่มรายวิชาให้</p>
+            <p>กดปุ่ม “เพิ่มรายวิชา” ด้านบนเพื่อสร้างรายวิชาแรกของคุณ</p>
+            <a class="btn btn-primary" href="{$base}/courses/new" style="margin-top:14px">+ เพิ่มรายวิชา</a>
         </div>
     {/if}
 </div>

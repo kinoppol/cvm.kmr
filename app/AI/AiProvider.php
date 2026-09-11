@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\AI;
 
 /**
- * ผู้ให้บริการ AI — มีสองแบบ: เครื่องของวิทยาลัย (Ollama) และคีย์ของครู (OpenAI-compatible)
- * ระหว่างยังไม่มีเครื่องจริง ใช้ SimulatedProvider แทน
+ * ผู้ให้บริการ AI — เครื่องของส่วนกลาง (OllamaProvider / OpenAiCompatibleProvider)
+ * คีย์ของครู (GoogleAiProvider / OpenAiCompatibleProvider) และ SimulatedProvider สำหรับโหมดจำลอง
  */
 interface AiProvider
 {
@@ -18,7 +18,7 @@ interface AiProvider
      */
     public function stream(string $systemPrompt, string $userPrompt, string $quality = 'fast'): iterable;
 
-    /** ชื่อที่ครูเห็น เช่น "AI ของวิทยาลัย" หรือ "AI ของฉัน · Gemini Flash" */
+    /** ชื่อที่ครูเห็น เช่น "AI ของส่วนกลาง" หรือ "AI ของฉัน · Gemini Flash" */
     public function label(): string;
 
     /** ตรวจว่าพร้อมใช้งานหรือไม่ (เช็คคิว/สถานะ) */

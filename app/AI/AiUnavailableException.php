@@ -7,7 +7,7 @@ namespace App\AI;
 use RuntimeException;
 
 /**
- * ไม่มีเส้นทาง AI ที่ใช้งานได้ (ทั้งคีย์ของครูและเครื่องของวิทยาลัย)
+ * ไม่มีเส้นทาง AI ที่ใช้งานได้ (ทั้งคีย์ของครูและเครื่องของส่วนกลาง)
  * $reason ใช้เลือกข้อความแจ้งเตือนที่หน้าจอ
  */
 final class AiUnavailableException extends RuntimeException

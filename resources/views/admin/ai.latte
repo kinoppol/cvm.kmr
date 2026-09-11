@@ -75,7 +75,7 @@
                     {/foreach}
                 </div>
                 <div class="chart-legend">
-                    <span><i style="background:var(--brand)"></i>AI ของวิทยาลัย</span>
+                    <span><i style="background:var(--brand)"></i>AI ของส่วนกลาง</span>
                     <span><i style="background:var(--brandLine)"></i>คีย์ของครูเอง</span>
                 </div>
             </div>
@@ -85,11 +85,11 @@
     <div class="card" style="margin-top:22px;padding:0;overflow:hidden">
         <div style="padding:16px 20px;border-bottom:1px solid var(--line)">
             <strong>การใช้งานรายครู · เดือนนี้</strong>
-            <span class="hint" style="margin-left:10px">เรียงตามจำนวนครั้งที่ใช้ AI ของวิทยาลัย</span>
+            <span class="hint" style="margin-left:10px">เรียงตามจำนวนครั้งที่ใช้ AI ของส่วนกลาง</span>
         </div>
         <div class="table-scroll">
             <table class="data">
-                <thead><tr><th>ครู</th><th class="num">AI วิทยาลัย</th><th class="num">คีย์ของตัวเอง</th><th class="num">โควตาคงเหลือ</th></tr></thead>
+                <thead><tr><th>ครู</th><th class="num">AI ส่วนกลาง</th><th class="num">คีย์ของตัวเอง</th><th class="num">โควตาคงเหลือ</th></tr></thead>
                 <tbody>
                 {foreach $usage as $u}
                     <tr>
@@ -102,6 +102,78 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="card" style="margin-top:22px" id="endpointCard" data-base="{$base}">
+        <strong>การเชื่อมต่อ AI ของส่วนกลาง</strong>
+        <div class="hint" style="margin-top:6px">
+            ตั้งค่าเครื่องหรือบริการที่ครูทุกคนใช้ร่วมกัน · ครูที่เชื่อม AI ของตัวเองไว้จะไม่ถูกกระทบ
+            {if $endpoint && $endpoint['last_checked_at']} · ตรวจล่าสุด {$endpointCheckedAgo}{/if}
+        </div>
+
+        <form method="post" action="{$base}/admin/ai/endpoint" style="margin-top:16px" id="endpointForm">
+            <input type="hidden" name="_token" value="{$csrf}">
+
+            <div class="endpoint-grid">
+                <div class="field">
+                    <label for="epName">ชื่อที่ครูเห็น</label>
+                    <input class="input" id="epName" name="name" value="{$endpoint['name'] ?? 'AI ของส่วนกลาง'}" maxlength="191">
+                </div>
+                <div class="field">
+                    <label for="epKind">ชนิดการเชื่อมต่อ</label>
+                    <select class="input" id="epKind" name="kind">
+                        <option value="ollama" selected="{($endpoint['kind'] ?? 'ollama') === 'ollama'}">Ollama (เครื่องที่ติดตั้งเอง)</option>
+                        <option value="openai_compatible" selected="{($endpoint['kind'] ?? '') === 'openai_compatible'}">API แบบ OpenAI (vLLM, LM Studio, เครื่องภายใน)</option>
+                        <option value="openrouter" selected="{($endpoint['kind'] ?? '') === 'openrouter'}">OpenRouter (บริการภายนอก)</option>
+                        <option value="google" selected="{($endpoint['kind'] ?? '') === 'google'}">Google AI Studio (Gemini)</option>
+                    </select>
+                </div>
+                <div class="field" id="epUrlField">
+                    <label for="epUrl">ที่อยู่ปลายทาง</label>
+                    <input class="input mono" id="epUrl" name="base_url" value="{$endpoint['base_url'] ?? ''}"
+                           placeholder="http://10.10.0.12:11434" maxlength="255">
+                    <div class="hint" id="epUrlHint"></div>
+                </div>
+                <div class="field">
+                    <label for="epModel">โมเดลที่เปิดใช้งาน</label>
+                    <div style="display:flex;gap:8px">
+                        <select class="input mono" id="epModel" name="model" style="flex:1">
+                            {if $endpoint && $endpoint['model']}
+                                <option value="{$endpoint['model']}" selected>{$endpoint['model']}</option>
+                            {/if}
+                            <option value="">ให้ปลายทางเลือกเอง</option>
+                            <option value="__custom">อื่น ๆ · พิมพ์ชื่อเอง</option>
+                        </select>
+                        <button type="button" class="btn" id="epLoadBtn" title="ดึงรายชื่อโมเดลจากปลายทาง">↻</button>
+                    </div>
+                    <input class="input mono" id="epModelCustom" name="model_custom" maxlength="191"
+                           placeholder="พิมพ์ชื่อโมเดล" style="margin-top:8px" hidden>
+                    <div class="hint" id="epModelHint">กด ↻ หรือ “ทดสอบการเชื่อมต่อ” เพื่อดึงรายชื่อโมเดลจากปลายทาง</div>
+                </div>
+                <div class="field">
+                    <label for="epKey">รหัสเชื่อมต่อ (ถ้าปลายทางต้องใช้)</label>
+                    <input class="input mono" id="epKey" name="api_key" type="password" autocomplete="off"
+                           placeholder="{$endpoint && $endpoint['api_key_encrypted'] ? 'เก็บรหัสไว้แล้ว — เว้นว่างเพื่อใช้รหัสเดิม' : 'ไม่ต้องใส่ถ้าเป็นเครื่องภายใน'}">
+                    {if $endpoint && $endpoint['api_key_encrypted']}
+                        <label class="hint" style="display:flex;gap:7px;align-items:center;margin-top:7px">
+                            <input type="checkbox" name="clear_key" value="1"> ลบรหัสที่เก็บไว้
+                        </label>
+                    {/if}
+                </div>
+                <div class="field">
+                    <label for="epNotes">บันทึกช่วยจำ</label>
+                    <input class="input" id="epNotes" name="notes" value="{$endpoint['notes'] ?? ''}"
+                           placeholder="เช่น เครื่องห้องเซิร์ฟเวอร์ ชั้น 2" maxlength="255">
+                </div>
+            </div>
+
+            <div id="epTestResult"></div>
+
+            <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+                <button type="button" class="btn" id="epTestBtn">ทดสอบการเชื่อมต่อ</button>
+                <button type="submit" class="btn btn-primary">บันทึกการตั้งค่า</button>
+            </div>
+        </form>
     </div>
 
     <div class="card" style="margin-top:22px">
@@ -124,4 +196,145 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var card = document.getElementById('endpointCard');
+    if (!card) { return; }
+
+    var base = card.dataset.base;
+    var kind = document.getElementById('epKind');
+    var url = document.getElementById('epUrl');
+    var urlHint = document.getElementById('epUrlHint');
+    var urlField = document.getElementById('epUrlField');
+    var keyField = document.getElementById('epKey').closest('.field');
+    var model = document.getElementById('epModel');
+    var custom = document.getElementById('epModelCustom');
+    var modelHint = document.getElementById('epModelHint');
+    var box = document.getElementById('epTestResult');
+    var testBtn = document.getElementById('epTestBtn');
+    var loadBtn = document.getElementById('epLoadBtn');
+    var saved = model.value;
+
+    /* บริการภายนอกมีที่อยู่ตายตัว ผู้ดูแลกรอกแค่รหัสเชื่อมต่อ */
+    var HOSTED = { openrouter: 'https://openrouter.ai/api/v1', google: 'https://generativelanguage.googleapis.com/v1beta' };
+
+    function syncUrlHint() {
+        var hosted = HOSTED[kind.value];
+        urlField.hidden = !!hosted;
+
+        if (hosted) {
+            url.value = hosted;
+            keyField.querySelector('label').textContent = 'รหัสเชื่อมต่อ (จำเป็นสำหรับบริการนี้)';
+            urlHint.textContent = '';
+            return;
+        }
+
+        keyField.querySelector('label').textContent = 'รหัสเชื่อมต่อ (ถ้าปลายทางต้องใช้)';
+        urlHint.textContent = kind.value === 'ollama'
+            ? 'ที่อยู่ของ Ollama เช่น http://10.10.0.12:11434 (ระบบจะเรียก /api/chat เอง)'
+            : 'ที่อยู่ฐานของ API เช่น http://10.10.0.12:8000/v1 (ระบบจะเรียก /chat/completions เอง)';
+        if (kind.value === 'ollama' && /\/v1\/?$/.test(url.value.trim())) {
+            urlHint.textContent += ' · ที่อยู่ลงท้ายด้วย /v1 มักเป็น API แบบ OpenAI ลองเปลี่ยนชนิดการเชื่อมต่อดู';
+        }
+    }
+
+    function syncCustom() {
+        custom.hidden = model.value !== '__custom';
+        if (!custom.hidden) { custom.focus(); }
+    }
+
+    /* เติมรายชื่อโมเดลที่ปลายทางมีจริง ให้ผู้ดูแลเลือกเปิดใช้งาน */
+    function fillModels(list) {
+        var chosen = model.value === '__custom' ? custom.value : model.value;
+        model.innerHTML = '';
+
+        list.forEach(function (m) {
+            var o = document.createElement('option');
+            o.value = m; o.textContent = m;
+            if (m === chosen || (chosen === '' && m === saved)) { o.selected = true; }
+            model.appendChild(o);
+        });
+
+        // โมเดลที่บันทึกไว้แต่ปลายทางไม่มีแล้ว — คงไว้ให้เห็นว่ากำลังชี้ไปที่อะไร
+        if (chosen && list.indexOf(chosen) === -1) {
+            var miss = document.createElement('option');
+            miss.value = chosen;
+            miss.textContent = chosen + ' (ไม่พบบนปลายทางแล้ว)';
+            miss.selected = true;
+            model.insertBefore(miss, model.firstChild);
+        }
+
+        var auto = document.createElement('option');
+        auto.value = ''; auto.textContent = 'ให้ปลายทางเลือกเอง';
+        model.appendChild(auto);
+
+        var other = document.createElement('option');
+        other.value = '__custom'; other.textContent = 'อื่น ๆ · พิมพ์ชื่อเอง';
+        model.appendChild(other);
+
+        syncCustom();
+    }
+
+    function probe(showResult) {
+        if (!url.value.trim()) { return; }
+        var buttons = [testBtn, loadBtn];
+        buttons.forEach(function (b) { b.disabled = true; });
+        if (showResult) { testBtn.textContent = 'กำลังทดสอบ…'; }
+        modelHint.textContent = 'กำลังดึงรายชื่อโมเดลจากปลายทาง…';
+
+        var body = new URLSearchParams({
+            _token: card.querySelector('input[name=_token]').value,
+            kind: kind.value,
+            base_url: url.value,
+            model: showResult ? (model.value === '__custom' ? custom.value : model.value) : '',
+            api_key: document.getElementById('epKey').value
+        });
+
+        fetch(base + '/admin/ai/endpoint/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            buttons.forEach(function (b) { b.disabled = false; });
+            testBtn.textContent = 'ทดสอบการเชื่อมต่อ';
+
+            if (showResult) {
+                box.className = 'alert ' + (d.ok ? 'alert-success' : 'alert-error');
+                box.style.marginTop = '14px';
+                box.innerHTML = '<span>' + (d.ok ? '✓' : '✕') + '</span><div></div>';
+                box.querySelector('div').textContent = d.message;
+            }
+
+            if (d.models && d.models.length) {
+                fillModels(d.models);
+                modelHint.textContent = 'ปลายทางมีโมเดลให้เลือก ' + d.models.length + ' รายการ · เลือกแล้วกดบันทึกเพื่อเปิดใช้งาน';
+            } else {
+                modelHint.textContent = d.ok
+                    ? 'ปลายทางไม่ได้บอกรายชื่อโมเดล — พิมพ์ชื่อเองได้ที่ตัวเลือก “อื่น ๆ”'
+                    : 'ดึงรายชื่อโมเดลไม่ได้ · ' + d.message;
+            }
+        }).catch(function () {
+            buttons.forEach(function (b) { b.disabled = false; });
+            testBtn.textContent = 'ทดสอบการเชื่อมต่อ';
+            modelHint.textContent = 'เรียกทดสอบไม่สำเร็จ';
+        });
+    }
+
+    kind.addEventListener('change', function () { syncUrlHint(); probe(false); });
+    url.addEventListener('blur', syncUrlHint);
+    model.addEventListener('change', syncCustom);
+    testBtn.addEventListener('click', function () { probe(true); });
+    loadBtn.addEventListener('click', function () { probe(false); });
+
+    // ส่งชื่อที่พิมพ์เองไปแทนค่า __custom ตอนบันทึก
+    document.getElementById('endpointForm').addEventListener('submit', function () {
+        if (model.value === '__custom' && custom.value.trim() === '') { model.value = ''; }
+    });
+
+    syncUrlHint();
+    syncCustom();
+    if (url.value.trim()) { probe(false); }
+})();
+</script>
 {/block}

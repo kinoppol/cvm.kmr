@@ -40,43 +40,31 @@ final class QuizGenerator
         $system = 'คุณเป็นผู้ช่วยครูอาชีวศึกษา ออกข้อสอบภาษาไทยที่ถูกต้องตามหลักวิชาชีพ '
             . 'ตอบกลับเป็น NDJSON หนึ่งข้อต่อหนึ่งบรรทัด';
 
-        $buffer = '';
-        foreach ($route->provider->stream($system, $spec, $quality) as $chunk) {
-            $buffer .= $chunk;
+        $count = 0;
+        foreach (JsonStream::objects($route->provider->stream($system, $spec, $quality)) as $obj) {
+            if (isset($obj['error'])) {
+                yield ['event' => 'error', 'message' => (string) $obj['error']];
 
-            while (($nl = strpos($buffer, "\n")) !== false) {
-                $line = trim(substr($buffer, 0, $nl));
-                $buffer = substr($buffer, $nl + 1);
-
-                if ($line === '') {
-                    continue;
-                }
-
-                $obj = json_decode($line, true);
-                if (!is_array($obj)) {
-                    continue;
-                }
-
-                if (isset($obj['error'])) {
-                    yield ['event' => 'error', 'message' => (string) $obj['error']];
-
-                    return;
-                }
-                if (!empty($obj['done'])) {
-                    yield ['event' => 'done', 'total' => (int) ($obj['total'] ?? 0)];
-
-                    return;
-                }
-
-                yield ['event' => 'question', 'data' => $this->normalise($obj)];
+                return;
             }
+            if (!empty($obj['done'])) {
+                yield ['event' => 'done', 'total' => (int) ($obj['total'] ?? $count)];
+
+                return;
+            }
+            if (!isset($obj['question'])) {
+                continue;
+            }
+
+            $count++;
+            yield ['event' => 'question', 'data' => $this->normalise($obj, $count)];
         }
 
-        yield ['event' => 'done', 'total' => 0];
+        yield ['event' => 'done', 'total' => $count];
     }
 
     /** @return array<string,mixed> */
-    private function normalise(array $obj): array
+    private function normalise(array $obj, int $fallbackNo = 0): array
     {
         $choices = [];
         foreach ($obj['choices'] ?? [] as $i => $c) {
@@ -88,7 +76,7 @@ final class QuizGenerator
         }
 
         return [
-            'no' => (int) ($obj['no'] ?? 0),
+            'no' => (int) ($obj['no'] ?? $fallbackNo),
             'type' => in_array($obj['type'] ?? 'choice', ['choice', 'short_answer', 'matching'], true) ? $obj['type'] : 'choice',
             'question' => trim((string) ($obj['question'] ?? '')),
             'explanation' => trim((string) ($obj['explanation'] ?? '')),

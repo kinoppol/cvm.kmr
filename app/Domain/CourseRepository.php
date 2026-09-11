@@ -58,6 +58,67 @@ final class CourseRepository
         );
     }
 
+    /**
+     * เพิ่มรายวิชาใหม่ให้ครูคนนี้
+     *
+     * @param array<string,mixed> $data
+     */
+    public function create(int $teacherId, array $data): int
+    {
+        return $this->db->insert('courses', $data + [
+            'teacher_id' => $teacherId,
+            'status' => 'active',
+        ]);
+    }
+
+    /** @param array<string,mixed> $data */
+    public function update(int $id, array $data): void
+    {
+        $this->db->update('courses', $data, ['id' => $id]);
+    }
+
+    /** เก็บรายวิชาเข้าคลัง (ไม่ลบทิ้ง เพราะบทเรียนและคะแนนยังผูกอยู่) */
+    public function archive(int $id): void
+    {
+        $this->db->update('courses', ['status' => 'archived'], ['id' => $id]);
+    }
+
+    /** รหัสวิชาซ้ำกับรายวิชาอื่นในภาคเรียน/กลุ่มเรียนเดียวกันหรือไม่ */
+    public function codeTaken(string $code, ?int $termId, ?int $classroomId, ?int $exceptId = null): bool
+    {
+        return $this->db->int(
+            'SELECT COUNT(*) FROM {courses}
+             WHERE code = ? AND term_id <=> ? AND classroom_id <=> ? AND id <> ?',
+            [$code, $termId, $classroomId, $exceptId ?? 0]
+        ) > 0;
+    }
+
+    /** @return list<array<string,mixed>> ภาคเรียนทั้งหมด ใหม่สุดขึ้นก่อน */
+    public function terms(): array
+    {
+        return $this->db->all(
+            'SELECT id, academic_year, semester, name, is_current
+             FROM {academic_terms} ORDER BY academic_year DESC, semester DESC'
+        );
+    }
+
+    /** @return list<array<string,mixed>> กลุ่มเรียนพร้อมชื่อสาขา */
+    public function classrooms(): array
+    {
+        return $this->db->all(
+            'SELECT cr.id, cr.name, d.name AS department_name
+             FROM {classrooms} cr LEFT JOIN {departments} d ON d.id = cr.department_id
+             ORDER BY cr.level, cr.year_level, cr.name'
+        );
+    }
+
+    public function currentTermId(): ?int
+    {
+        $id = $this->db->int('SELECT id FROM {academic_terms} WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
+
+        return $id > 0 ? $id : null;
+    }
+
     /** ครูเป็นเจ้าของรายวิชานี้หรือไม่ */
     public function ownedByTeacher(int $courseId, int $teacherId): bool
     {

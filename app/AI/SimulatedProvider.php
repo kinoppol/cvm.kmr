@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\AI;
 
 /**
- * ผู้ช่วย AI จำลอง — ใช้แทนเครื่องจริงระหว่างที่ยังไม่มีเครื่อง GPU ของวิทยาลัย
+ * ผู้ช่วย AI จำลอง — ใช้แทนเครื่องจริงระหว่างที่ยังไม่มีเครื่อง GPU ของส่วนกลาง
  *
  * รับ prompt เป็น JSON ที่ QuizGenerator/LessonPlanGenerator สร้างขึ้น แล้วสตรีมผลลัพธ์
  * เป็น NDJSON ทีละบรรทัดพร้อมหน่วงเวลาเล็กน้อยให้เหมือนการพิมพ์คำตอบจริง
@@ -13,7 +13,7 @@ namespace App\AI;
 final class SimulatedProvider implements AiProvider
 {
     public function __construct(
-        private readonly string $label = 'AI ของวิทยาลัย',
+        private readonly string $label = 'AI ของส่วนกลาง',
         private readonly bool $available = true,
         private readonly int $chunkDelayMs = 550,
     ) {
@@ -38,6 +38,13 @@ final class SimulatedProvider implements AiProvider
             return;
         }
 
+        // แชตทดสอบการเชื่อมต่อ — สตรีมข้อความล้วนทีละคำ ไม่ใช่ NDJSON
+        if (($spec['task'] ?? '') === 'chat') {
+            yield from $this->chatChunks((string) ($spec['message'] ?? ''));
+
+            return;
+        }
+
         $lines = match ($spec['task'] ?? '') {
             'quiz' => $this->quizLines($spec, $quality),
             'lesson_plan' => $this->lessonPlanLines($spec, $quality),
@@ -51,6 +58,48 @@ final class SimulatedProvider implements AiProvider
             }
             yield $line . "\n";
         }
+    }
+
+    /** @return iterable<string> */
+    private function chatChunks(string $message): iterable
+    {
+        $reply = $this->composeChatReply($message);
+
+        // แบ่งเป็นคำ/วรรค แล้วสตรีมทีละชิ้นให้เหมือนการพิมพ์
+        $parts = preg_split('/(\s+)/u', $reply, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$reply];
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+            if (PHP_SAPI !== 'cli') {
+                usleep(random_int(24, 70) * 1000);
+            }
+            yield $part;
+        }
+    }
+
+    private function composeChatReply(string $message): string
+    {
+        $message = trim($message);
+        if ($message === '') {
+            return 'สวัสดีค่ะ ลองพิมพ์คำถามหรือหัวข้อที่อยากให้ช่วย เช่น "ช่วยคิดหัวข้อสอบเรื่องเซนเซอร์" หรือ "อธิบายกฎของโอห์มแบบสั้น ๆ" ได้เลยค่ะ';
+        }
+
+        $lower = mb_strtolower($message);
+        $isGreeting = (bool) preg_match('/^(สวัสดี|หวัดดี|hello|hi|ทดสอบ|test|เช็ค|check)/u', $lower);
+
+        if ($isGreeting) {
+            return 'สวัสดีค่ะ ผู้ช่วย AI เชื่อมต่อได้และพร้อมใช้งานแล้ว 🎉 ลองสั่งงานได้เลย เช่น ให้ช่วยร่างข้อสอบ สรุปใบความรู้ หรือทำแผนการสอน '
+                . 'ข้อความนี้สตรีมมาจากเส้นทาง AI ที่ระบบเลือกให้อัตโนมัติ ถ้าเห็นข้อความทยอยขึ้นทีละคำแสดงว่าการเชื่อมต่อทำงานปกติค่ะ';
+        }
+
+        // ตอบแบบยืนยันว่าเข้าใจคำถาม + คำแนะนำสั้น ๆ (ตัวจำลอง ไม่ได้ต่อโมเดลจริง)
+        $summary = mb_substr($message, 0, 120);
+
+        return "รับทราบคำขอ: \"{$summary}\"\n\n"
+            . "นี่เป็นการตอบกลับจากตัวจำลองผู้ช่วย AI เพื่อยืนยันว่าการเชื่อมต่อและการสตรีมข้อความทำงานได้ปกติ "
+            . "เมื่อเชื่อมต่อกับเครื่องของส่วนกลางหรือคีย์ของครูจริง ระบบจะส่งคำถามนี้ไปประมวลผลและตอบกลับเนื้อหาที่ใช้งานได้จริง\n\n"
+            . "ระหว่างนี้แนะนำให้ใช้เมนู \"ให้ AI ช่วย\" ในหน้ารายวิชา เพื่อร่างข้อสอบหรือแผนการสอนจากบทเรียนของคุณได้เลยค่ะ";
     }
 
     /** @return list<string> */

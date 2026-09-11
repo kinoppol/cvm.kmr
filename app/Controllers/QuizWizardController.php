@@ -121,7 +121,7 @@ final class QuizWizardController
         };
 
         try {
-            $route = $this->router->route((int) $user['id'], $quality);
+            $route = $this->router->route((int) $user['id'], $quality, real: true);
         } catch (AiUnavailableException $e) {
             $send('error', ['reason' => $e->reason, 'message' => $e->getMessage()]);
 
@@ -255,7 +255,7 @@ final class QuizWizardController
         $params = $genPayload['params'] ?? [];
 
         try {
-            $route = $this->router->route((int) $user['id']);
+            $route = $this->router->route((int) $user['id'], $this->settings->userQualityPref((int) $user['id']), real: true);
         } catch (AiUnavailableException $e) {
             return $this->json($response, ['error' => $e->getMessage()], 503);
         }
@@ -420,7 +420,7 @@ final class QuizWizardController
     private function tryRoute(int $userId): array
     {
         try {
-            $route = $this->router->route($userId);
+            $route = $this->router->route($userId, $this->settings->userQualityPref($userId), real: true);
 
             return ['chip' => $route->chip, 'wait' => $route->wait, 'error' => null];
         } catch (AiUnavailableException $e) {
@@ -435,13 +435,13 @@ final class QuizWizardController
     private function sourceChip(?array $generation): string
     {
         if ($generation === null) {
-            return 'AI วิทยาลัย';
+            return 'AI ส่วนกลาง';
         }
         $payload = json_decode((string) ($generation['payload'] ?? '{}'), true) ?: [];
 
         return isset($payload['ai_mode']) && $payload['ai_mode']
             ? 'AI ของฉัน · ' . $payload['ai_mode']
-            : 'AI วิทยาลัย';
+            : 'AI ส่วนกลาง';
     }
 
     private function period(): string

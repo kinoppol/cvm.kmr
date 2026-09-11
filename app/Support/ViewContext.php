@@ -33,6 +33,9 @@ final class ViewContext implements MiddlewareInterface
 
         $this->view->share('user', $user);
         $this->view->share('term', $this->termLabel());
+        $this->view->share('ui', Palette::tokens(
+            $this->settings->uiPrimary(is_array($user) ? (int) $user['id'] : null)['hex']
+        ));
         $this->view->share('impersonatedBy', $this->auth->isImpersonating() ? $this->auth->impersonatorName() : null);
 
         if (is_array($user) && ($user['role'] ?? '') === 'teacher') {

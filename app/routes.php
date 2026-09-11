@@ -8,6 +8,8 @@ use App\Controllers\Admin\AiController as AdminAiController;
 use App\Controllers\Admin\DemoController;
 use App\Controllers\Admin\MigrationController;
 use App\Controllers\Admin\UsersController as AdminUsersController;
+use App\Controllers\AiChatController;
+use App\Controllers\AppearanceController;
 use App\Controllers\AuthController;
 use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
@@ -36,10 +38,27 @@ return static function (App $app): void {
         // เลิกสวมสิทธิ์ — ต้องเข้าถึงได้ทุกบทบาทที่ล็อกอินอยู่ จึงอยู่นอกกลุ่มตามบทบาท
         $group->post('/impersonate/stop', [ImpersonationController::class, 'stop'])->setName('impersonate.stop');
 
+        // ช่องสนทนาลอยสำหรับทดสอบว่าผู้ช่วย AI เชื่อมต่อและตอบกลับได้จริง (ไม่ตัดโควตา)
+        $group->group('/ai/chat', function (RouteCollectorProxy $c): void {
+            $c->get('/status', [AiChatController::class, 'status']);
+            $c->get('/stream', [AiChatController::class, 'stream']);
+            $c->post('/prepare', [AiChatController::class, 'prepare']);
+            $c->post('/attach', [AiChatController::class, 'attach']);
+        })->add(new RoleMiddleware(['teacher', 'admin']));
+
+        // ผู้ช่วยสร้างรายวิชาให้ตามคำขอ — ครูต้องกดยืนยันจากการ์ดในช่องสนทนาก่อนเสมอ
+        $group->post('/ai/chat/create-course', [AiChatController::class, 'createCourse'])
+            ->add(new RoleMiddleware(['teacher']));
+
         $group->group('/courses', function (RouteCollectorProxy $t): void {
             $t->get('', [CourseController::class, 'index'])->setName('courses');
             $t->post('/landing-visibility', [CourseController::class, 'landingVisibility']);
+            $t->get('/new', [CourseController::class, 'edit'])->setName('course.new');
+            $t->post('', [CourseController::class, 'save']);
             $t->get('/{id:[0-9]+}', [CourseController::class, 'show'])->setName('course.show');
+            $t->get('/{id:[0-9]+}/edit', [CourseController::class, 'edit']);
+            $t->post('/{id:[0-9]+}', [CourseController::class, 'save']);
+            $t->post('/{id:[0-9]+}/archive', [CourseController::class, 'archive']);
             $t->get('/{courseId:[0-9]+}/lessons/new', [LessonController::class, 'edit']);
             $t->get('/{courseId:[0-9]+}/lessons/{id:[0-9]+}/edit', [LessonController::class, 'edit']);
             $t->post('/{courseId:[0-9]+}/lessons[/{id:[0-9]+}]', [LessonController::class, 'save']);
@@ -73,12 +92,17 @@ return static function (App $app): void {
             $s->get('/attempts/{attemptId:[0-9]+}/result', [StudentController::class, 'result']);
         })->add(new RoleMiddleware(['student']));
 
+        // สีหลักของหน้าจอ — ผู้ใช้ทุกบทบาทตั้งของตัวเองได้ ผู้ดูแลตั้งค่าเริ่มต้นของระบบได้ด้วย
+        $group->get('/settings/appearance', [AppearanceController::class, 'index'])->setName('appearance');
+        $group->post('/settings/appearance', [AppearanceController::class, 'save']);
+
         $group->group('/settings', function (RouteCollectorProxy $s): void {
             $s->get('/ai', [SettingsController::class, 'ai'])->setName('settings.ai');
             $s->post('/ai/test', [SettingsController::class, 'test']);
             $s->post('/ai/connect', [SettingsController::class, 'connect']);
             $s->post('/ai/disconnect', [SettingsController::class, 'disconnect']);
             $s->post('/ai/mode', [SettingsController::class, 'mode']);
+            $s->post('/ai/route', [SettingsController::class, 'route']);
         })->add(new RoleMiddleware(['teacher']));
 
         $group->group('/admin', function (RouteCollectorProxy $admin): void {
@@ -93,6 +117,8 @@ return static function (App $app): void {
 
             $admin->get('/ai', [AdminAiController::class, 'index'])->setName('admin.ai');
             $admin->post('/ai/cap', [AdminAiController::class, 'saveCap']);
+            $admin->post('/ai/endpoint', [AdminAiController::class, 'saveEndpoint']);
+            $admin->post('/ai/endpoint/test', [AdminAiController::class, 'testEndpoint']);
             $admin->get('/users', [AdminUsersController::class, 'index'])->setName('admin.users');
             $admin->post('/users/{id:[0-9]+}/impersonate', [ImpersonationController::class, 'start']);
         })->add(new RoleMiddleware(['admin']));

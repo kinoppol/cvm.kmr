@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\AI\AiUnavailableException;
+use App\AI\GoogleAiProvider;
 use App\AI\KeyCipher;
+use App\AI\OpenAiCompatibleProvider;
 use App\Auth\Auth;
 use App\Domain\AiRepository;
 use App\Domain\SettingsRepository;
@@ -18,7 +21,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use SensitiveParameter;
 
 /**
- * ตั้งค่า → ผู้ช่วย AI ของฉัน: การ์ดเทียบ AI วิทยาลัย / AI ของฉัน, ตัวช่วยเชื่อม API 3 ขั้น, โหมดคุณภาพ
+ * ตั้งค่า → ผู้ช่วย AI ของฉัน: การ์ดเทียบ AI ส่วนกลาง / AI ของฉัน, ตัวช่วยเชื่อม API 3 ขั้น, โหมดคุณภาพ
  */
 final class SettingsController
 {
@@ -57,6 +60,7 @@ final class SettingsController
             'keyProviderName' => $key ? (self::PROVIDERS[$key['provider']] ?? $key['provider']) : null,
             'keyVerifiedAgo' => $key && $key['verified_at'] ? Thai::ago($key['verified_at']) : null,
             'qualityPref' => $this->settings->userQualityPref($uid),
+            'routePref' => $this->settings->userRoutePref($uid),
             'providers' => self::PROVIDERS,
         ]);
     }
@@ -70,8 +74,9 @@ final class SettingsController
 
         $provider = (string) ($data['provider'] ?? '');
         $key = trim((string) ($data['key'] ?? ''));
+        $baseUrl = trim((string) ($data['base_url'] ?? '')) ?: null;
 
-        return $this->json($response, $this->probeKey($provider, $key));
+        return $this->json($response, $this->probeKey($provider, $key, $baseUrl));
     }
 
     public function connect(Request $request, Response $response): Response
@@ -88,7 +93,7 @@ final class SettingsController
         $key = trim((string) ($data['key'] ?? ''));
         $baseUrl = trim((string) ($data['base_url'] ?? '')) ?: null;
 
-        $probe = $this->probeKey($provider, $key);
+        $probe = $this->probeKey($provider, $key, $baseUrl);
         if (!$probe['ok']) {
             Flash::error($probe['message']);
 
@@ -124,7 +129,7 @@ final class SettingsController
 
         $this->ai->disconnectUser((int) $user['id']);
         $this->auth->log('ai.key.disconnect');
-        Flash::success('ยกเลิกการเชื่อมแล้ว · กลับไปใช้ AI ของวิทยาลัย');
+        Flash::success('ยกเลิกการเชื่อมแล้ว · กลับไปใช้ AI ของส่วนกลาง');
 
         return $this->redirect($response, '/settings/ai');
     }
@@ -146,32 +151,56 @@ final class SettingsController
         return $this->redirect($response, '/settings/ai');
     }
 
-    /** @return array{ok:bool,message:string,model?:string,models?:list<string>} */
-    private function probeKey(string $provider, #[SensitiveParameter] string $key): array
+    /** ครูเลือกว่าจะให้ผู้ช่วยใช้แหล่งไหนก่อน เมื่อเชื่อมไว้มากกว่าหนึ่งแหล่ง */
+    public function route(Request $request, Response $response): Response
     {
-        // ตัวจำลอง: ระหว่างยังไม่ต่อบริการจริง ตรวจรูปแบบคีย์แบบหลวม ๆ
+        $user = $request->getAttribute('user');
+        $data = (array) $request->getParsedBody();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirect($response, '/settings/ai');
+        }
+
+        $pref = ($data['route'] ?? '') === 'college' ? 'college' : 'byok';
+        $this->settings->set('ai_route:' . (int) $user['id'], $pref, 'string', 'ai');
+        $this->auth->log('ai.route.prefer', $pref);
+        Flash::success($pref === 'college'
+            ? 'ใช้ AI ของส่วนกลางก่อน · จะสลับไปใช้ AI ของครูให้อัตโนมัติเมื่อเครื่องส่วนกลางไม่ว่าง'
+            : 'ใช้ AI ของฉันก่อน · จะสลับไปใช้เครื่องของส่วนกลางให้อัตโนมัติเมื่อ AI ของครูใช้ไม่ได้');
+
+        return $this->redirect($response, '/settings/ai');
+    }
+
+    /**
+     * ทดสอบรหัสกับบริการจริง (ขอรายชื่อโมเดล) แล้วคืนชื่อโมเดลที่จะใช้เรียกงานต่อไป
+     *
+     * @return array{ok:bool,message:string,model?:string,models?:list<string>}
+     */
+    private function probeKey(string $provider, #[SensitiveParameter] string $key, ?string $baseUrl = null): array
+    {
+        $key = trim($key);
         if ($key === '') {
             return ['ok' => false, 'message' => 'ยังไม่ได้วางรหัส กรุณาวางรหัสที่คัดลอกมาจากผู้ให้บริการ'];
         }
-        if (mb_strlen($key) < 12 || str_contains($key, ' ')) {
-            return ['ok' => false, 'message' => 'รหัสไม่ครบหรือมีช่องว่างปน กรุณาคัดลอกทั้งบรรทัด ไม่เว้นวรรคหน้า–หลัง'];
-        }
-        if (str_contains(strtolower($key), 'expired') || str_contains(strtolower($key), 'revoked')) {
-            return ['ok' => false, 'message' => 'รหัสนี้ถูกปิดการใช้งานไปแล้ว กลับไปที่หน้าผู้ให้บริการแล้วกดสร้างรหัสใหม่'];
+        if (str_contains($key, ' ') || str_contains($key, "\n")) {
+            return ['ok' => false, 'message' => 'รหัสมีช่องว่างปน กรุณาคัดลอกทั้งบรรทัด ไม่เว้นวรรคหน้า–หลัง'];
         }
 
-        $model = match ($provider) {
-            'google' => 'Gemini 1.5 Flash',
-            'openrouter' => 'auto',
-            default => 'ตามที่ตั้งค่า',
-        };
-
-        return [
-            'ok' => true,
-            'message' => 'เชื่อมต่อได้ · ใช้ได้ทั้งโหมดประหยัดและโหมดคุณภาพสูง',
-            'model' => $model,
-            'models' => [$model],
-        ];
+        try {
+            return match ($provider) {
+                'google' => GoogleAiProvider::probe($key),
+                'openrouter' => OpenAiCompatibleProvider::probe(
+                    $key,
+                    OpenAiCompatibleProvider::OPENROUTER_BASE,
+                    OpenAiCompatibleProvider::OPENROUTER_DEFAULT_MODEL,
+                    verifyKey: true
+                ),
+                default => OpenAiCompatibleProvider::probe($key, (string) $baseUrl),
+            };
+        } catch (AiUnavailableException $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
     }
 
     private function json(Response $response, array $data, int $status = 200): Response

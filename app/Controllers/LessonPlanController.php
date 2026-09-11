@@ -92,7 +92,8 @@ final class LessonPlanController
         };
 
         try {
-            $route = $this->router->route((int) $user['id'], 'quality');
+            $quality = $this->settings->userQualityPref((int) $user['id']);
+            $route = $this->router->route((int) $user['id'], $quality, real: true);
         } catch (AiUnavailableException $e) {
             $send('error', ['reason' => $e->reason, 'message' => $e->getMessage()]);
 
@@ -113,7 +114,7 @@ final class LessonPlanController
 
         $sections = [];
         try {
-            foreach ($this->generator->stream($route, $params, 'quality') as $ev) {
+            foreach ($this->generator->stream($route, $params, $quality) as $ev) {
                 if ($ev['event'] === 'section') {
                     $sections[] = $ev['data'];
                     $send('section', $ev['data']);
@@ -127,6 +128,13 @@ final class LessonPlanController
         } catch (Throwable $e) {
             $send('error', ['reason' => 'generate_failed', 'message' => 'ระบบขัดข้องระหว่างร่างเอกสาร']);
             $this->ai->updateJob($jobId, ['status' => 'failed', 'error' => $e->getMessage(), 'finished_at' => date('Y-m-d H:i:s')]);
+
+            return $response;
+        }
+
+        if ($sections === []) {
+            $send('error', ['reason' => 'empty', 'message' => 'ผู้ช่วยไม่ได้ร่างหัวข้อออกมา กรุณาลองใหม่']);
+            $this->ai->updateJob($jobId, ['status' => 'failed', 'finished_at' => date('Y-m-d H:i:s')]);
 
             return $response;
         }
@@ -256,7 +264,7 @@ final class LessonPlanController
     private function safeChip(int $userId): string
     {
         try {
-            return $this->router->route($userId, 'quality')->chip;
+            return $this->router->route($userId, $this->settings->userQualityPref($userId), real: true)->chip;
         } catch (AiUnavailableException) {
             return 'ผู้ช่วย AI ยังใช้งานไม่ได้';
         }

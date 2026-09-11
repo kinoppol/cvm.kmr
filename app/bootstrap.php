@@ -26,6 +26,7 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
 use Slim\Exception\HttpException;
 use Slim\Factory\AppFactory;
@@ -88,6 +89,31 @@ Url::setBase($basePath);
 
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
+
+/*
+ * เส้นทางในระบบเขียนไว้แบบไม่มี / ปิดท้าย เช่น /courses
+ * ถ้าผู้ใช้พิมพ์ /courses/ มาเอง Slim จะหาเส้นทางไม่เจอและขึ้น "ไม่พบหน้าที่ต้องการ"
+ * จึงตัด / ท้ายออกแล้วพาไปหน้าที่ถูกต้องให้ (middleware ที่เพิ่มทีหลังจะทำงานก่อน routing)
+ */
+$app->add(function (ServerRequestInterface $request, RequestHandlerInterface $handler) use ($app, $basePath): ResponseInterface {
+    $uri = $request->getUri();
+    $path = $uri->getPath();
+    $target = rtrim($path, '/');
+
+    // หน้าแรกของระบบ (/ หรือ /cvm.kmr/) ปล่อยผ่านตามปกติ
+    if ($path === $target || $target === '' || $target === $basePath) {
+        return $handler->handle($request);
+    }
+
+    if ($uri->getQuery() !== '') {
+        $target .= '?' . $uri->getQuery();
+    }
+
+    // 308 คงเมธอดและเนื้อหาเดิมไว้ กรณีที่ไม่ใช่การเปิดหน้าธรรมดา
+    $status = in_array($request->getMethod(), ['GET', 'HEAD'], true) ? 301 : 308;
+
+    return $app->getResponseFactory()->createResponse($status)->withHeader('Location', $target);
+});
 
 $debug = (bool) $config->get('app.debug', false);
 $errorMiddleware = $app->addErrorMiddleware($debug, true, true, $container->get(LoggerInterface::class));

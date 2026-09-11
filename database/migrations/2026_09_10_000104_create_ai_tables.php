@@ -9,14 +9,14 @@ final class CreateAiTables extends Migration
 {
     public function description(): string
     {
-        return 'ตารางผู้ช่วย AI: เครื่อง AI ของวิทยาลัย คีย์ของครู โควตา คิวงาน และเนื้อหาที่รอตรวจ';
+        return 'ตารางผู้ช่วย AI: เครื่อง AI ของส่วนกลาง คีย์ของครู โควตา คิวงาน และเนื้อหาที่รอตรวจ';
     }
 
     public function up(Runner $db): void
     {
         $db->exec(sprintf('CREATE TABLE `%s` (
             `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            `name` VARCHAR(191) NOT NULL COMMENT \'ชื่อที่ครูเห็น เช่น AI ของวิทยาลัย\',
+            `name` VARCHAR(191) NOT NULL COMMENT \'ชื่อที่ครูเห็น เช่น AI ของส่วนกลาง\',
             `base_url` VARCHAR(255) NOT NULL,
             `model` VARCHAR(191) NOT NULL DEFAULT \'\',
             `api_key_encrypted` TEXT NULL,

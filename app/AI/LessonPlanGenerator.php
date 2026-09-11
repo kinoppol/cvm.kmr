@@ -27,44 +27,29 @@ final class LessonPlanGenerator
         $system = 'คุณเป็นผู้ช่วยครูอาชีวศึกษา ร่างแผนการจัดการเรียนรู้มุ่งเน้นสมรรถนะตามแบบฟอร์ม สอศ. '
             . 'ตอบกลับเป็น NDJSON หนึ่งหัวข้อต่อหนึ่งบรรทัด';
 
-        $buffer = '';
         $meta = [];
 
-        foreach ($route->provider->stream($system, $spec, $quality) as $chunk) {
-            $buffer .= $chunk;
+        foreach (JsonStream::objects($route->provider->stream($system, $spec, $quality)) as $obj) {
+            if (isset($obj['error'])) {
+                yield ['event' => 'error', 'message' => (string) $obj['error']];
 
-            while (($nl = strpos($buffer, "\n")) !== false) {
-                $line = trim(substr($buffer, 0, $nl));
-                $buffer = substr($buffer, $nl + 1);
-                if ($line === '') {
-                    continue;
-                }
+                return;
+            }
+            if (isset($obj['meta']) && is_array($obj['meta'])) {
+                $meta = $obj['meta'];
 
-                $obj = json_decode($line, true);
-                if (!is_array($obj)) {
-                    continue;
-                }
+                continue;
+            }
+            if (!empty($obj['done'])) {
+                yield ['event' => 'done', 'data' => ['meta' => $meta]];
 
-                if (isset($obj['error'])) {
-                    yield ['event' => 'error', 'message' => (string) $obj['error']];
-
-                    return;
-                }
-                if (isset($obj['meta'])) {
-                    $meta = $obj['meta'];
-                    continue;
-                }
-                if (!empty($obj['done'])) {
-                    yield ['event' => 'done', 'data' => ['meta' => $meta]];
-
-                    return;
-                }
-                if (isset($obj['head'], $obj['body'])) {
-                    yield ['event' => 'section', 'data' => [
-                        'head' => (string) $obj['head'],
-                        'body' => (string) $obj['body'],
-                    ]];
-                }
+                return;
+            }
+            if (isset($obj['head'], $obj['body'])) {
+                yield ['event' => 'section', 'data' => [
+                    'head' => (string) $obj['head'],
+                    'body' => is_array($obj['body']) ? implode("\n", array_map('strval', $obj['body'])) : (string) $obj['body'],
+                ]];
             }
         }
 

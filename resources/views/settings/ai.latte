@@ -5,13 +5,13 @@
 {block content}
 <div class="wizard-page" style="max-width:1000px" id="aiSettings" data-base="{$base}">
     <h1>ผู้ช่วย AI ของฉัน</h1>
-    <div class="sub">เลือกได้ว่าจะให้ผู้ช่วยทำงานด้วยเครื่องของวิทยาลัย หรือด้วยบริการที่ครูเชื่อมเอง</div>
+    <div class="sub">เลือกได้ว่าจะให้ผู้ช่วยทำงานด้วยเครื่องของส่วนกลาง หรือด้วยบริการที่ครูเชื่อมเอง</div>
 
     <div class="ai-cards">
         <div class="card ai-card ai-card-college">
-            <span class="tag" style="background:var(--brand);color:#fff">แนะนำ · {$key ? 'สำรอง' : 'ใช้อยู่'}</span>
-            <h2>AI ของวิทยาลัย</h2>
-            <p>เครื่องที่ตั้งอยู่ในห้องเซิร์ฟเวอร์ของวิทยาลัย ใช้ได้ทันทีโดยไม่ต้องตั้งค่า ข้อมูลและไฟล์ไม่ออกนอกวิทยาลัย</p>
+            <span class="tag" style="background:var(--brand);color:#fff">แนะนำ · {$key && $routePref !== 'college' ? 'สำรอง' : 'ใช้อยู่'}</span>
+            <h2>AI ของส่วนกลาง</h2>
+            <p>เครื่องหรือบริการที่ส่วนกลางจัดให้ ผู้ดูแลระบบเป็นผู้ตั้งค่าให้ทั้งหมด ครูใช้ได้ทันทีโดยไม่ต้องกรอกอะไร</p>
             <ul class="feat">
                 <li><span class="ok">✓</span> ใช้ได้เลย ไม่ต้องกรอกอะไร</li>
                 <li><span class="ok">✓</span> ข้อมูลอยู่ในวิทยาลัย</li>
@@ -27,18 +27,18 @@
                 {if $endpoint && $endpoint['status'] === 'online'}
                     ตอนนี้พร้อมใช้งาน{if $queue > 0} · มีคิวรอ {$queue} งาน{/if}
                 {else}
-                    ตอนนี้เครื่องของวิทยาลัยไม่พร้อมใช้งาน
+                    ตอนนี้เครื่องของส่วนกลางไม่พร้อมใช้งาน
                 {/if}
             </div>
         </div>
 
         <div class="card ai-card">
-            <span class="tag tag-muted">{$key ? 'เชื่อมแล้ว' : 'ยังไม่ได้เชื่อม'}</span>
+            <span class="tag tag-muted">{$key ? ($routePref === 'byok' ? 'เชื่อมแล้ว · ใช้อยู่' : 'เชื่อมแล้ว · สำรอง') : 'ยังไม่ได้เชื่อม'}</span>
             <h2>AI ของฉัน</h2>
-            <p>ครูที่มีบัญชีบริการ AI ของตัวเองอยู่แล้ว เอามาเชื่อมได้ ระบบจะใช้ของครูก่อนเสมอ</p>
+            <p>ครูที่มีบัญชีบริการ AI ของตัวเองอยู่แล้ว เอามาเชื่อมได้ ค่าเริ่มต้นระบบจะใช้ของครูก่อน และเลือกเปลี่ยนได้ที่หัวข้อด้านล่าง</p>
             <ul class="feat">
                 <li><span class="ok">✓</span> ได้ผลเร็วขึ้น ไม่ต้องรอคิว</li>
-                <li><span class="ok">✓</span> ไม่ใช้โควตาของวิทยาลัย</li>
+                <li><span class="ok">✓</span> ไม่ใช้โควตาของส่วนกลาง</li>
                 <li><span class="dot">•</span> ค่าใช้บริการเป็นของครูเอง</li>
             </ul>
 
@@ -59,10 +59,28 @@
                 </div>
             {else}
                 <button type="button" class="btn btn-primary btn-block" style="margin-top:16px" data-open-wizard>เชื่อมต่อ AI ของฉัน</button>
-                <div class="hint" style="margin-top:10px">ใช้เวลาประมาณ 3 นาที มีขั้นตอนบอกทีละหน้าจอ ถ้าไม่เชื่อมก็ใช้ AI ของวิทยาลัยได้ตามปกติ</div>
+                <div class="hint" style="margin-top:10px">ใช้เวลาประมาณ 3 นาที มีขั้นตอนบอกทีละหน้าจอ ถ้าไม่เชื่อมก็ใช้ AI ของส่วนกลางได้ตามปกติ</div>
             {/if}
         </div>
     </div>
+
+    {if $key && $byokAllowed}
+    <div class="card" style="margin-top:24px">
+        <h2>ใช้ AI ตัวไหนก่อน</h2>
+        <div class="hint" style="margin-top:6px">ตอนนี้เชื่อมไว้ทั้งสองแหล่ง เลือกได้ว่าจะให้ผู้ช่วยเรียกใช้ตัวไหนก่อน ถ้าตัวที่เลือกใช้ไม่ได้ ระบบจะสลับไปอีกตัวให้อัตโนมัติ</div>
+        <form method="post" action="{$base}/settings/ai/route" class="mode-row" style="margin-top:12px">
+            <input type="hidden" name="_token" value="{$csrf}">
+            <button type="submit" name="route" value="byok" n:class="level-card, $routePref === 'byok' ? is-on">
+                <div class="level-name">AI ของฉัน{if $routePref === 'byok'} · ใช้อยู่{/if}</div>
+                <div class="level-desc">{$keyProviderName} · เร็วกว่า ไม่ต้องรอคิว และไม่ใช้โควตาของส่วนกลาง (ค่าเริ่มต้น)</div>
+            </button>
+            <button type="submit" name="route" value="college" n:class="level-card, $routePref === 'college' ? is-on">
+                <div class="level-name">AI ของส่วนกลาง{if $routePref === 'college'} · ใช้อยู่{/if}</div>
+                <div class="level-desc">ข้อมูลไม่ออกนอกวิทยาลัย · ใช้โควตาเดือนนี้ เหลือ {$quota['left']} จาก {$quota['limit']} ครั้ง</div>
+            </button>
+        </form>
+    </div>
+    {/if}
 
     <div class="card" style="margin-top:24px">
         <h2>คุณภาพของผลลัพธ์</h2>
@@ -97,7 +115,7 @@
             <input type="hidden" name="provider" id="wizProvider" value="google">
 
             <div class="wiz-step" data-step="1">
-                <p class="hint">เลือกบริการที่ครูมีบัญชีอยู่แล้ว ถ้าไม่มีเลย ข้ามไปใช้ AI ของวิทยาลัยได้</p>
+                <p class="hint">เลือกบริการที่ครูมีบัญชีอยู่แล้ว ถ้าไม่มีเลย ข้ามไปใช้ AI ของส่วนกลางได้</p>
                 <div class="prov-list">
                     {foreach $providers as $pv => $name}
                         <button type="button" data-prov="{$pv}" n:class="prov-row, $iterator->first ? is-on">
@@ -192,7 +210,12 @@
     function runTest() {
         var btn = document.getElementById('wizTestBtn');
         btn.disabled = true; btn.textContent = 'กำลังทดสอบ…';
-        var body = new URLSearchParams({ _token: csrf, provider: document.getElementById('wizProvider').value, key: document.getElementById('wizKey').value });
+        var body = new URLSearchParams({
+            _token: csrf,
+            provider: document.getElementById('wizProvider').value,
+            key: document.getElementById('wizKey').value,
+            base_url: document.getElementById('wizBaseUrl').value
+        });
         fetch(base + '/settings/ai/test', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
             .then(function (r) { return r.json(); })
             .then(function (d) {

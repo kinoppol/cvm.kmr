@@ -7,7 +7,7 @@ namespace App\Domain;
 use App\Support\Db;
 
 /**
- * เครื่อง AI ของวิทยาลัย คีย์ของครู โควตา คิวงาน และบันทึกการใช้งาน
+ * เครื่อง AI ของส่วนกลาง คีย์ของครู โควตา คิวงาน และบันทึกการใช้งาน
  */
 final class AiRepository
 {
@@ -101,6 +101,31 @@ final class AiRepository
     }
 
     // ---- คิวงาน ----
+
+    /**
+     * บันทึกการตั้งค่าเครื่อง AI ส่วนกลาง (มีได้ตัวเดียวเป็นค่าเริ่มต้น) แล้วคืน id
+     *
+     * @param array<string,mixed> $data
+     */
+    public function saveEndpoint(?int $id, array $data): int
+    {
+        if ($id !== null && $this->db->int('SELECT COUNT(*) FROM {ai_endpoints} WHERE id = ?', [$id]) > 0) {
+            $this->db->update('ai_endpoints', $data, ['id' => $id]);
+
+            return $id;
+        }
+
+        return $this->db->insert('ai_endpoints', $data + ['is_default' => 1]);
+    }
+
+    /** อัปเดตผลการตรวจสอบสถานะเครื่องส่วนกลาง */
+    public function markEndpointChecked(int $id, string $status): void
+    {
+        $this->db->update('ai_endpoints', [
+            'status' => $status,
+            'last_checked_at' => date('Y-m-d H:i:s'),
+        ], ['id' => $id]);
+    }
 
     /** @param array<string,mixed> $data */
     public function createJob(array $data): int
