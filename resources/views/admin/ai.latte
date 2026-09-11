@@ -7,7 +7,14 @@
     <h1>เครื่อง AI และโควตา</h1>
     <div class="sub">สถานะเครื่องในห้องเซิร์ฟเวอร์ · ครูนำร่อง {$teacherCount} คน · {$term ?? ''}</div>
 
-    <div class="admin-grid">
+    <div class="tabs">
+        <a href="{$base}/admin/ai?tab=overview" n:class="tab, $tab === 'overview' ? is-active">ภาพรวม</a>
+        <a href="{$base}/admin/ai?tab=settings" n:class="tab, $tab === 'settings' ? is-active">การตั้งค่า</a>
+        <a href="{$base}/admin/ai?tab=quota" n:class="tab, $tab === 'quota' ? is-active">จำกัดการใช้งาน</a>
+    </div>
+
+    {if $tab === 'overview'}
+    <div class="admin-grid" style="margin-top:22px">
         <div class="card">
             <div class="admin-gpu-head">
                 <span n:class="dot-status, $endpoint && $endpoint['status'] === 'online' ? is-online"></span>
@@ -104,6 +111,7 @@
         </div>
     </div>
 
+    {elseif $tab === 'settings'}
     <div class="card" style="margin-top:22px" id="endpointCard" data-base="{$base}">
         <strong>การเชื่อมต่อ AI ของส่วนกลาง</strong>
         <div class="hint" style="margin-top:6px">
@@ -176,6 +184,7 @@
         </form>
     </div>
 
+    {elseif $tab === 'quota'}
     <div class="card" style="margin-top:22px">
         <strong>เพดานโควตาต่อครูต่อเดือน</strong>
         <div class="hint" style="margin-top:6px">ครูที่ใช้คีย์ของตัวเองจะไม่ถูกนับในโควตานี้</div>
@@ -195,6 +204,7 @@
             {/if}
         </div>
     </div>
+    {/if}
 </div>
 
 <script>

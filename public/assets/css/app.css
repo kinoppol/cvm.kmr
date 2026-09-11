@@ -1078,3 +1078,13 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
     border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
 }
 .preview-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- ฟอร์มสมัครสมาชิกครู ---------- */
+.panel-wide { max-width: 640px; }
+.register-form-grid {
+    display: grid; gap: 0 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 560px) {
+    .register-form-grid { grid-template-columns: 1fr; }
+}

@@ -38,7 +38,11 @@ final class Auth
         }
 
         if ($user['status'] !== 'active') {
-            return ['ok' => false, 'message' => 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ'];
+            $message = $user['status'] === 'pending'
+                ? 'บัญชีนี้อยู่ระหว่างรอผู้ดูแลระบบอนุมัติ กรุณารอการติดต่อกลับ'
+                : 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ';
+
+            return ['ok' => false, 'message' => $message];
         }
 
         if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
@@ -173,6 +177,72 @@ final class Auth
         $user = $stmt->fetch();
 
         return $user === false ? null : $user;
+    }
+
+    public function usernameTaken(string $username): bool
+    {
+        $stmt = $this->db->prepare(sprintf('SELECT COUNT(*) FROM `%susers` WHERE username = ?', $this->prefix));
+        $stmt->execute([$username]);
+
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    public function emailTaken(string $email): bool
+    {
+        $stmt = $this->db->prepare(sprintf('SELECT COUNT(*) FROM `%susers` WHERE email = ?', $this->prefix));
+        $stmt->execute([$email]);
+
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * ครูสมัครสมาชิกเอง — บันทึกเป็นสถานะ "pending" เสมอ ต้องรอผู้ดูแลอนุมัติก่อนถึงจะล็อกอินได้
+     *
+     * @param array{username:string,email:string,password:string,full_name:string,phone:?string,subject_area:string,institution:string} $data
+     */
+    public function registerTeacher(array $data): int
+    {
+        $stmt = $this->db->prepare(sprintf(
+            'INSERT INTO `%susers`
+                (username, email, password_hash, full_name, role, status, phone, subject_area, institution)
+             VALUES (?, ?, ?, ?, \'teacher\', \'pending\', ?, ?, ?)',
+            $this->prefix
+        ));
+        $stmt->execute([
+            $data['username'],
+            $data['email'],
+            password_hash($data['password'], PASSWORD_DEFAULT),
+            $data['full_name'],
+            $data['phone'] ?: null,
+            $data['subject_area'],
+            $data['institution'],
+        ]);
+
+        return (int) $this->db->lastInsertId();
+    }
+
+    /** อนุมัติครูที่สมัครเอง — เปลี่ยนสถานะ pending เป็น active เท่านั้น ไม่แตะบัญชีอื่น */
+    public function approveTeacher(int $id): bool
+    {
+        $stmt = $this->db->prepare(sprintf(
+            "UPDATE `%susers` SET status = 'active' WHERE id = ? AND role = 'teacher' AND status = 'pending'",
+            $this->prefix
+        ));
+        $stmt->execute([$id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /** ปฏิเสธคำขอสมัคร — ลบบัญชีทิ้งเลยเพราะยังไม่เคยใช้งานจริง (จำกัดเฉพาะสถานะ pending กันลบบัญชีอื่นโดยไม่ตั้งใจ) */
+    public function rejectTeacher(int $id): bool
+    {
+        $stmt = $this->db->prepare(sprintf(
+            "DELETE FROM `%susers` WHERE id = ? AND role = 'teacher' AND status = 'pending'",
+            $this->prefix
+        ));
+        $stmt->execute([$id]);
+
+        return $stmt->rowCount() > 0;
     }
 
     public function isThrottled(string $username, string $ip, string $scope = 'login'): bool
