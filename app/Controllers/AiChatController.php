@@ -288,10 +288,15 @@ final class AiChatController
         }
 
         $termId = $this->courses->currentTermId();
-        if ($this->courses->codeTaken((int) $user['id'], $code, $termId, null, null)) {
+        $classroomId = ((int) ($data['classroom_id'] ?? 0)) ?: null;
+
+        if ($this->courses->codeTaken((int) $user['id'], $code, $termId, $classroomId, null)) {
             return $this->json($response, [
                 'ok' => false,
-                'message' => 'คุณมีรายวิชารหัส ' . $code . ' ในภาคเรียนนี้อยู่แล้ว',
+                'message' => $classroomId === null
+                    ? 'คุณมีรายวิชารหัส ' . $code . ' ในภาคเรียนนี้อยู่แล้ว — แก้รหัสวิชา หรือเลือกกลุ่มเรียนให้ต่างจากเดิมแล้วลองอีกครั้ง'
+                    : 'คุณมีรายวิชารหัส ' . $code . ' ของกลุ่มเรียนนี้อยู่แล้ว — แก้รหัสวิชาหรือเปลี่ยนกลุ่มเรียนแล้วลองอีกครั้ง',
+                'suggestion' => $this->freeCode((int) $user['id'], $code, $termId, $classroomId),
             ], 409);
         }
 
@@ -303,7 +308,7 @@ final class AiChatController
             'practice_hours' => max(0, min(255, (int) ($data['practice_hours'] ?? 2))),
             'description' => trim((string) ($data['description'] ?? '')) ?: null,
             'term_id' => $termId,
-            'classroom_id' => null,
+            'classroom_id' => $classroomId,
         ]);
 
         $this->auth->log('ai.chat.create_course', 'course#' . $id, ['code' => $code]);
@@ -316,6 +321,24 @@ final class AiChatController
             'editUrl' => Url::to('/courses/' . $id . '/edit'),
             'message' => 'สร้างรายวิชา ' . $name . ' แล้ว',
         ]);
+    }
+
+    /** หารหัสวิชาที่ยังว่างให้ครูใช้แทน เช่น 30202-2001 ชนแล้วเสนอ 30202-2002 ต่อไปเรื่อย ๆ */
+    private function freeCode(int $teacherId, string $code, ?int $termId, ?int $classroomId): ?string
+    {
+        if (preg_match('/^(.*?)(\d+)$/u', $code, $m) !== 1) {
+            return null;
+        }
+
+        $width = strlen($m[2]);
+        for ($i = 1; $i <= 20; $i++) {
+            $candidate = $m[1] . str_pad((string) ((int) $m[2] + $i), $width, '0', STR_PAD_LEFT);
+            if (!$this->courses->codeTaken($teacherId, $candidate, $termId, $classroomId, null)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -475,6 +498,11 @@ final class AiChatController
                     'theory_hours' => (int) ($obj['theory_hours'] ?? 1),
                     'practice_hours' => (int) ($obj['practice_hours'] ?? 2),
                     'description' => mb_substr(trim((string) ($obj['description'] ?? '')), 0, 500),
+                    // ครูแก้รหัส/ชื่อ และเลือกกลุ่มเรียนได้บนการ์ดก่อนกดสร้าง
+                    'classrooms' => array_map(static fn (array $c): array => [
+                        'id' => (int) $c['id'],
+                        'name' => (string) $c['name'],
+                    ], $this->courses->classrooms()),
                 ];
             }
 

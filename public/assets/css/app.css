@@ -1209,3 +1209,14 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
     50% { content: '..'; }
     75% { content: '...'; }
 }
+
+/* ---------- ช่องแก้ไขบนการ์ดของช่องสนทนา AI ---------- */
+.aichat-card-input {
+    width: 100%; height: 34px; padding: 0 9px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    font: 400 13px/1 var(--body);
+}
+.aichat-card-input.mono { font-family: var(--mono); }
+.aichat-card-input:focus, .aichat-card-select:focus {
+    outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brandSoft);
+}

@@ -215,13 +215,23 @@
     function courseCard(d) {
         if (empty) { empty.hidden = true; }
 
+        var rooms = (d.classrooms || []).map(function (c) {
+            return '<option value="' + c.id + '">' + esc(c.name) + '</option>';
+        }).join('');
+
         var el = document.createElement('div');
         el.className = 'aichat-card';
         el.innerHTML =
             '<div class="aichat-card-title">สร้างรายวิชานี้ให้ไหม</div>' +
-            '<dl class="aichat-card-rows">' +
-            '<div><dt>รหัสวิชา</dt><dd class="mono" data-f="code"></dd></div>' +
-            '<div><dt>ชื่อวิชา</dt><dd data-f="name"></dd></div>' +
+            '<label class="aichat-card-label">รหัสวิชา · แก้ได้ถ้าซ้ำกับวิชาเดิม</label>' +
+            '<input type="text" class="aichat-card-input mono" data-f="code" maxlength="32">' +
+            '<label class="aichat-card-label">ชื่อวิชา</label>' +
+            '<input type="text" class="aichat-card-input" data-f="name" maxlength="191">' +
+            '<label class="aichat-card-label">กลุ่มเรียน</label>' +
+            '<select class="aichat-card-select" data-f="classroom">' +
+            '<option value="">— ยังไม่ระบุกลุ่มเรียน —</option>' + rooms +
+            '</select>' +
+            '<dl class="aichat-card-rows" style="margin-top:12px">' +
             '<div><dt>หน่วยกิต</dt><dd class="mono" data-f="credits"></dd></div>' +
             '<div><dt>ทฤษฎี/ปฏิบัติ</dt><dd class="mono" data-f="hours"></dd></div>' +
             '</dl>' +
@@ -231,15 +241,14 @@
             '<button type="button" class="aichat-card-no">ไม่ใช่ตอนนี้</button>' +
             '</div>';
 
-        var set = function (field, value) {
-            var node = el.querySelector('[data-f="' + field + '"]');
-            if (node) { node.textContent = value; }
-        };
-        set('code', d.code);
-        set('name', d.name);
-        set('credits', d.credits);
-        set('hours', d.theory_hours + ' / ' + d.practice_hours + ' ชม.');
-        set('description', d.description || '');
+        var codeInput = el.querySelector('[data-f="code"]');
+        var nameInput = el.querySelector('[data-f="name"]');
+        var roomSelect = el.querySelector('[data-f="classroom"]');
+        codeInput.value = d.code;
+        nameInput.value = d.name;
+        el.querySelector('[data-f="credits"]').textContent = d.credits;
+        el.querySelector('[data-f="hours"]').textContent = d.theory_hours + ' / ' + d.practice_hours + ' ชม.';
+        el.querySelector('[data-f="description"]').textContent = d.description || '';
 
         el.querySelector('.aichat-card-no').addEventListener('click', function () {
             el.remove();
@@ -251,7 +260,11 @@
             ok.disabled = true; ok.textContent = 'กำลังสร้าง…';
 
             var body = new URLSearchParams({
-                _token: token, code: d.code, name: d.name, credits: d.credits,
+                _token: token,
+                code: codeInput.value.trim(),
+                name: nameInput.value.trim(),
+                classroom_id: roomSelect.value,
+                credits: d.credits,
                 theory_hours: d.theory_hours, practice_hours: d.practice_hours,
                 description: d.description || ''
             });
@@ -264,6 +277,13 @@
                 if (!res.ok) {
                     ok.disabled = false; ok.textContent = 'สร้างรายวิชา';
                     note(res.message || 'สร้างรายวิชาไม่สำเร็จ', 'err');
+
+                    /* รหัสซ้ำ — เติมรหัสว่างที่ระบบหาให้ลงช่องเลย ครูกดสร้างซ้ำได้ทันที */
+                    if (res.suggestion) {
+                        codeInput.value = res.suggestion;
+                        codeInput.focus();
+                        note('เปลี่ยนรหัสวิชาให้เป็น ' + res.suggestion + ' แล้ว · ตรวจแล้วกดสร้างอีกครั้งได้เลย', 'ok');
+                    }
                     return;
                 }
                 el.remove();
