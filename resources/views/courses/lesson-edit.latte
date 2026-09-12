@@ -18,12 +18,12 @@
 
         <div class="field">
             <label for="summary">สรุปสั้น ๆ</label>
-            <textarea class="input" id="summary" name="summary" rows="2" style="height:auto;padding:10px 12px">{$lesson['summary'] ?? ''}</textarea>
+            <textarea class="input" id="summary" name="summary" rows="2">{$lesson['summary'] ?? ''}</textarea>
         </div>
 
         <div class="field">
             <label for="content">เนื้อหาบทเรียน (ไม่บังคับ)</label>
-            <textarea class="input" id="content" name="content" rows="10" style="height:auto;padding:10px 12px;font-family:var(--body)">{$lesson['content'] ?? ''}</textarea>
+            <textarea class="input" id="content" name="content" rows="10" style="font-family:var(--body)">{$lesson['content'] ?? ''}</textarea>
         </div>
 
         {if $lesson}

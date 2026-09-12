@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\AI\AiRouter;
 use App\AI\AiUnavailableException;
-use App\AI\JsonStream;
+use App\AI\Drafter;
 use App\Auth\Auth;
-use App\Domain\AiRepository;
 use App\Domain\AssignmentRepository;
 use App\Domain\CourseRepository;
-use App\Domain\SettingsRepository;
 use App\Domain\UnitRepository;
 use App\Support\Csrf;
 use App\Support\Flash;
@@ -38,9 +35,7 @@ final class AssignmentController
         private readonly CourseRepository $courses,
         private readonly UnitRepository $units,
         private readonly AssignmentRepository $assignments,
-        private readonly AiRouter $router,
-        private readonly AiRepository $ai,
-        private readonly SettingsRepository $settings,
+        private readonly Drafter $drafter,
         private readonly Auth $auth,
         private readonly LoggerInterface $logger,
     ) {
@@ -167,24 +162,20 @@ final class AssignmentController
         }
 
         $maxScore = max(1, min(999, (float) ($data['max_score'] ?? 10)));
-        $spec = json_encode([
-            'task' => 'assignment',
-            'course_code' => $course['code'],
-            'course_name' => $course['name'],
-            'unit' => $unit['title'],
-            'key_content' => $unit['key_content'],
-            'max_score' => $maxScore,
-            'note' => mb_substr(trim((string) ($data['note'] ?? '')), 0, 500),
-        ], JSON_UNESCAPED_UNICODE);
-
         $system = 'คุณเป็นผู้ช่วยครูอาชีวศึกษา ออกแบบใบงานภาษาไทยที่สั่งงานเป็นรูปธรรม '
             . 'ตอบกลับเป็น JSON อ็อบเจกต์เดียว';
-        $quality = $this->settings->userQualityPref((int) $user['id']);
-        set_time_limit(0);
 
         try {
-            $route = $this->router->route((int) $user['id'], $quality, false, real: true);
-            $draft = $this->firstObject($route->provider->stream($system, (string) $spec, $quality));
+            $objects = $this->drafter->objects((int) $user['id'], $system, [
+                'task' => 'assignment',
+                'course_code' => $course['code'],
+                'course_name' => $course['name'],
+                'unit' => $unit['title'],
+                'key_content' => $unit['key_content'],
+                'max_score' => $maxScore,
+                'note' => mb_substr(trim((string) ($data['note'] ?? '')), 0, 500),
+            ], 3);
+            $draft = $this->firstWithTitle($objects);
         } catch (AiUnavailableException $e) {
             Flash::error($e->getMessage());
 
@@ -198,8 +189,6 @@ final class AssignmentController
 
             return $this->backToForm($response, $course, $unit, $args['id'] ?? null);
         }
-
-        $this->ai->logUsage((int) $user['id'], null, $route->source, $route->model, $draft !== null);
 
         if ($draft === null) {
             Flash::error('ผู้ช่วยไม่ได้ร่างใบงานออกมา กรุณาลองใหม่อีกครั้ง');
@@ -267,12 +256,12 @@ final class AssignmentController
     }
 
     /**
-     * @param iterable<string> $stream
+     * @param list<array<string,mixed>> $objects
      * @return array<string,mixed>|null
      */
-    private function firstObject(iterable $stream): ?array
+    private function firstWithTitle(array $objects): ?array
     {
-        foreach (JsonStream::objects($stream) as $obj) {
+        foreach ($objects as $obj) {
             if (trim((string) ($obj['title'] ?? '')) !== '') {
                 return $obj;
             }

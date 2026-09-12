@@ -4,7 +4,7 @@
 
 {block content}
 {var $unitUrl = $base . '/courses/' . $course['id'] . '/units/' . $unit['id']}
-<div class="form-page">
+<div class="form-page form-page-wide">
     <a class="back-link" href="{$unitUrl}/edit">← กลับไปที่ {$unit['title']}</a>
     <h1>{$assignment ? 'แก้ไขใบงาน' : 'เพิ่มใบงาน'}</h1>
     <div class="sub"><span class="mono">{$course['code']}</span> · {$unit['title']}</div>
@@ -42,7 +42,7 @@
 
         <div class="field">
             <label for="description">รายละเอียดใบงาน</label>
-            <textarea class="input" id="description" name="description" rows="14"
+            <textarea class="input" id="description" name="description" rows="20"
                       placeholder="จุดประสงค์ ขั้นตอนการทำงาน สิ่งที่ต้องส่ง และเกณฑ์การให้คะแนน">{$form['description']}</textarea>
         </div>
 

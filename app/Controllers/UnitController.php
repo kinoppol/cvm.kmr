@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\AI\AiUnavailableException;
+use App\AI\Drafter;
 use App\Domain\AssignmentRepository;
 use App\Domain\CourseRepository;
 use App\Domain\UnitRepository;
@@ -15,8 +17,10 @@ use App\Support\View;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\UploadedFileInterface;
+use Psr\Log\LoggerInterface;
 use Slim\Exception\HttpForbiddenException;
 use Slim\Exception\HttpNotFoundException;
+use Throwable;
 
 /**
  * CRUD สำหรับหน่วยการเรียนและส่วนเนื้อหาภายในหน่วย
@@ -32,6 +36,8 @@ final class UnitController
         private readonly CourseRepository $courses,
         private readonly UnitRepository $units,
         private readonly AssignmentRepository $assignments,
+        private readonly Drafter $drafter,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -57,6 +63,7 @@ final class UnitController
             'unit' => $unit,
             'sections' => $sections,
             'assignments' => $unit ? $this->assignments->forUnit($unitId) : [],
+            'drafted' => $this->pullDraft($unitId),
         ]);
     }
 
@@ -228,6 +235,162 @@ final class UnitController
         }
 
         return $this->redirectToUnit($response, $courseId, $unitId);
+    }
+
+    /** ให้ผู้ช่วยร่างเนื้อหาของหน่วยนี้เป็นหัวข้อย่อย แล้วพักไว้ให้ครูตรวจก่อนบันทึก */
+    public function draftContent(Request $request, Response $response, array $args): Response
+    {
+        $user = $request->getAttribute('user');
+        [$course, $unit] = $this->ownedUnit($request, $args);
+        $data = (array) $request->getParsedBody();
+
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirectToUnit($response, (int) $course['id'], (int) $unit['id']);
+        }
+
+        if ((int) ($course['ai_lesson_plan_enabled'] ?? 1) !== 1) {
+            throw new HttpForbiddenException($request, 'ผู้ดูแลระบบปิดฟังก์ชัน AI ของรายวิชานี้ไว้');
+        }
+
+        $count = max(2, min(10, (int) ($data['count'] ?? 4)));
+        $existing = array_map(
+            static fn (array $s): string => (string) $s['title'],
+            $this->units->sectionsFor((int) $unit['id'])
+        );
+
+        try {
+            $objects = $this->drafter->objects(
+                (int) $user['id'],
+                'คุณเป็นผู้ช่วยครูอาชีวศึกษา เขียนเนื้อหาบทเรียนภาษาไทยที่ใช้สอนได้จริง '
+                    . 'ตอบกลับเป็น NDJSON หนึ่งหัวข้อต่อหนึ่งบรรทัด',
+                [
+                    'task' => 'unit_content',
+                    'course_code' => $course['code'],
+                    'course_name' => $course['name'],
+                    'unit' => $unit['title'],
+                    'key_content' => $unit['key_content'],
+                    'objectives' => $unit['objectives'],
+                    'existing' => $existing,
+                    'count' => $count,
+                    'note' => mb_substr(trim((string) ($data['note'] ?? '')), 0, 500),
+                ],
+                $count
+            );
+        } catch (AiUnavailableException $e) {
+            Flash::error($e->getMessage());
+
+            return $this->redirectToUnit($response, (int) $course['id'], (int) $unit['id']);
+        } catch (Throwable $e) {
+            $this->logger->error('ร่างเนื้อหาหน่วยการเรียนไม่สำเร็จ: ' . $e->getMessage(), [
+                'unit_id' => (int) $unit['id'],
+            ]);
+            Flash::error('ผู้ช่วยร่างเนื้อหาไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+
+            return $this->redirectToUnit($response, (int) $course['id'], (int) $unit['id']);
+        }
+
+        $sections = [];
+        foreach ($objects as $obj) {
+            $content = trim((string) ($obj['content'] ?? ''));
+            if ($content === '') {
+                continue;
+            }
+
+            $sections[] = [
+                'title' => mb_substr(trim((string) ($obj['title'] ?? '')) ?: 'หัวข้อย่อย', 0, 191),
+                'content' => mb_substr($content, 0, 20000),
+            ];
+        }
+
+        if ($sections === []) {
+            Flash::error('ผู้ช่วยไม่ได้ร่างเนื้อหาออกมา กรุณาลองใหม่อีกครั้ง');
+
+            return $this->redirectToUnit($response, (int) $course['id'], (int) $unit['id']);
+        }
+
+        $_SESSION['unit_content_draft'] = ['unit_id' => (int) $unit['id'], 'sections' => $sections];
+
+        return $this->redirectToUnit($response, (int) $course['id'], (int) $unit['id']);
+    }
+
+    /** บันทึกหัวข้อที่ครูติ๊กเลือกจากที่ผู้ช่วยร่างไว้ ต่อท้ายเนื้อหาเดิมของหน่วย */
+    public function saveDraftContent(Request $request, Response $response, array $args): Response
+    {
+        [$course, $unit] = $this->ownedUnit($request, $args);
+        $data = (array) $request->getParsedBody();
+
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirectToUnit($response, (int) $course['id'], (int) $unit['id']);
+        }
+
+        $draft = $_SESSION['unit_content_draft'] ?? null;
+        unset($_SESSION['unit_content_draft']);
+
+        if (!is_array($draft) || (int) $draft['unit_id'] !== (int) $unit['id']) {
+            Flash::error('ไม่พบเนื้อหาที่ร่างไว้ กรุณาให้ผู้ช่วยร่างใหม่');
+
+            return $this->redirectToUnit($response, (int) $course['id'], (int) $unit['id']);
+        }
+
+        $picked = array_map('intval', (array) ($data['pick'] ?? []));
+        $sortOrder = $this->units->nextSectionSortOrder((int) $unit['id']);
+        $created = 0;
+
+        foreach ($draft['sections'] as $i => $section) {
+            if (!in_array($i, $picked, true)) {
+                continue;
+            }
+
+            $this->units->createSection([
+                'unit_id' => (int) $unit['id'],
+                'type' => 'text',
+                'title' => $section['title'],
+                'content' => $section['content'],
+                'sort_order' => $sortOrder++,
+            ]);
+            $created++;
+        }
+
+        Flash::success($created > 0
+            ? 'เพิ่มเนื้อหาที่ผู้ช่วยร่างไว้ ' . $created . ' หัวข้อแล้ว · แก้ไขต่อได้ตามต้องการ'
+            : 'ยังไม่ได้เลือกหัวข้อที่จะบันทึก');
+
+        return $this->redirectToUnit($response, (int) $course['id'], (int) $unit['id']);
+    }
+
+    /**
+     * รายวิชาต้องเป็นของครูคนนี้ และหน่วยต้องอยู่ในรายวิชานั้น
+     *
+     * @return array{0:array<string,mixed>,1:array<string,mixed>}
+     */
+    private function ownedUnit(Request $request, array $args): array
+    {
+        $user = $request->getAttribute('user');
+        $courseId = (int) $args['courseId'];
+        $course = $this->requireOwnedCourse($request, $courseId, (int) $user['id']);
+        $unit = $this->units->find((int) $args['id']);
+
+        if ($unit === null || (int) $unit['course_id'] !== $courseId) {
+            throw new HttpNotFoundException($request, 'ไม่พบหน่วยการเรียนนี้');
+        }
+
+        return [$course, $unit];
+    }
+
+    /**
+     * เนื้อหาที่ผู้ช่วยร่างไว้ของหน่วยนี้ (อ่านแล้วคาไว้จนกว่าครูจะบันทึกหรือปิดทิ้ง)
+     *
+     * @return list<array{title:string,content:string}>
+     */
+    private function pullDraft(int $unitId): array
+    {
+        $draft = $_SESSION['unit_content_draft'] ?? null;
+
+        return is_array($draft) && (int) $draft['unit_id'] === $unitId ? $draft['sections'] : [];
     }
 
     /** @return array<string,mixed> */

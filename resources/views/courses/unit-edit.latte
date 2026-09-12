@@ -82,6 +82,57 @@
         <p class="sub" style="padding:16px 0 0">ยังไม่มีเนื้อหา เพิ่มส่วนเนื้อหาด้านล่าง</p>
     {/if}
 
+    {* ── ให้ผู้ช่วย AI ร่างเนื้อหาของหน่วยนี้ ── *}
+    {if $course['ai_lesson_plan_enabled']}
+        {if $drafted}
+            <form method="post" action="{$base}/courses/{$course['id']}/units/{$unit['id']}/content-draft/save"
+                  style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+                <input type="hidden" name="_token" value="{$csrf}">
+                <div class="step-label">ผู้ช่วยร่างเนื้อหามาให้ {count($drafted)} หัวข้อ</div>
+                <div class="hint" style="margin-top:6px">ติ๊กหัวข้อที่ต้องการ แล้วกดบันทึก · เนื้อหาจะถูกเพิ่มต่อท้ายของเดิม แก้ไขต่อได้</div>
+
+                <div style="margin-top:10px">
+                    {foreach $drafted as $i => $d}
+                        <label class="outline-row">
+                            <input type="checkbox" name="pick[]" value="{$i}" checked>
+                            <span class="outline-no mono">{sprintf('%02d', $iterator->counter)}</span>
+                            <span class="outline-main">
+                                <span class="outline-title">{$d['title']}</span>
+                                <span class="outline-sub">{$d['content']}</span>
+                            </span>
+                        </label>
+                    {/foreach}
+                </div>
+
+                <div class="form-actions" style="margin-top:14px">
+                    <div class="spacer"></div>
+                    <button type="submit" class="btn btn-primary btn-sm">บันทึกหัวข้อที่เลือก</button>
+                </div>
+            </form>
+        {else}
+            <form method="post" action="{$base}/courses/{$course['id']}/units/{$unit['id']}/content-draft"
+                  style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px"
+                  data-busy="กำลังร่างเนื้อหา…">
+                <input type="hidden" name="_token" value="{$csrf}">
+                <div class="step-label">ให้ AI ช่วยร่างเนื้อหาของหน่วยนี้</div>
+                <div class="hint" style="margin-top:6px">
+                    ผู้ช่วยจะใช้สาระสำคัญและจุดประสงค์ของหน่วยนี้เขียนเนื้อหาแยกเป็นหัวข้อย่อยมาให้เลือก
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
+                    <input type="number" name="count" class="input" style="width:110px" min="2" max="10" value="4"
+                           aria-label="จำนวนหัวข้อย่อย">
+                    <input type="text" name="note" class="input" style="flex:1;min-width:220px" maxlength="500"
+                           placeholder="สั่งเพิ่มเติม เช่น ยกตัวอย่างจากร้านสะดวกซื้อ (ไม่บังคับ)">
+                    <button type="submit" class="btn">✦ ให้ AI ร่างเนื้อหา</button>
+                </div>
+                <div class="busy-note" data-busy-note hidden>
+                    <span class="spinner"></span>
+                    <span>ผู้ช่วยกำลังเขียนเนื้อหาให้<span class="busy-dots"></span> อย่าปิดหน้านี้</span>
+                </div>
+            </form>
+        {/if}
+    {/if}
+
     {* ── เพิ่มส่วนเนื้อหา ── *}
     <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
         <div style="font-weight:600;font-size:13px;margin-bottom:12px">เพิ่มส่วนเนื้อหา</div>

@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\AI\AiRouter;
 use App\AI\AiUnavailableException;
-use App\AI\JsonStream;
+use App\AI\Drafter;
 use App\Auth\Auth;
 use App\Controllers\Concerns\OwnsCourse;
-use App\Domain\AiRepository;
 use App\Domain\CourseRepository;
-use App\Domain\SettingsRepository;
 use App\Domain\UnitRepository;
 use App\Support\Csrf;
 use App\Support\Flash;
@@ -39,9 +36,7 @@ final class UnitOutlineController
         private readonly View $view,
         private readonly CourseRepository $courses,
         private readonly UnitRepository $units,
-        private readonly AiRepository $ai,
-        private readonly AiRouter $router,
-        private readonly SettingsRepository $settings,
+        private readonly Drafter $drafter,
         private readonly Auth $auth,
         private readonly LoggerInterface $logger,
     ) {
@@ -90,26 +85,20 @@ final class UnitOutlineController
             $this->units->forCourse((int) $course['id'])
         );
 
-        $spec = json_encode([
-            'task' => 'unit_outline',
-            'course_code' => $course['code'],
-            'course_name' => $course['name'],
-            'description' => $course['description'],
-            'existing' => $existing,
-            'count' => $count,
-            'note' => $note,
-        ], JSON_UNESCAPED_UNICODE);
-
-        $quality = $this->settings->userQualityPref((int) $user['id']);
-        set_time_limit(0);
-
         // ต้องมีข้อความกำกับระบบเสมอ — ผู้ให้บริการบางรายปฏิเสธคำขอที่ system prompt ว่างเปล่า
         $system = 'คุณเป็นผู้ช่วยครูอาชีวศึกษา ออกแบบโครงสร้างหน่วยการเรียนเป็นภาษาไทย '
             . 'ตอบกลับเป็น NDJSON หนึ่งหน่วยต่อหนึ่งบรรทัด';
 
         try {
-            $route = $this->router->route((int) $user['id'], $quality, false, real: true);
-            $units = $this->collect($route->provider->stream($system, (string) $spec, $quality), $count);
+            $units = $this->clean($this->drafter->objects((int) $user['id'], $system, [
+                'task' => 'unit_outline',
+                'course_code' => $course['code'],
+                'course_name' => $course['name'],
+                'description' => $course['description'],
+                'existing' => $existing,
+                'count' => $count,
+                'note' => $note,
+            ], $count));
         } catch (AiUnavailableException $e) {
             Flash::error($e->getMessage());
 
@@ -124,8 +113,6 @@ final class UnitOutlineController
 
             return $this->back($response, $course);
         }
-
-        $this->ai->logUsage((int) $user['id'], null, $route->source, $route->model, $units !== []);
 
         if ($units === []) {
             Flash::error('ผู้ช่วยไม่ได้ร่างหน่วยการเรียนออกมา กรุณาลองใหม่หรือปรับคำสั่งเพิ่มเติม');
@@ -204,20 +191,16 @@ final class UnitOutlineController
     }
 
     /**
-     * อ่านผลจากโมเดลทีละก้อน JSON — ทนกับกรณีที่โมเดลไม่ยอมตอบบรรทัดละอ็อบเจกต์
+     * คัดเฉพาะหน่วยที่ใช้ได้ และตัดความยาวให้พอดีกับคอลัมน์
      *
-     * @param iterable<string> $stream
+     * @param list<array<string,mixed>> $objects
      * @return list<array{title:string,key_content:string,objectives:string,competencies:string,hours:int}>
      */
-    private function collect(iterable $stream, int $limit): array
+    private function clean(array $objects): array
     {
         $units = [];
 
-        foreach (JsonStream::objects($stream) as $obj) {
-            if (isset($obj['done'])) {
-                break;
-            }
-
+        foreach ($objects as $obj) {
             $title = trim((string) ($obj['title'] ?? ''));
             if ($title === '') {
                 continue;
@@ -230,10 +213,6 @@ final class UnitOutlineController
                 'competencies' => mb_substr(trim((string) ($obj['competencies'] ?? '')), 0, 2000),
                 'hours' => max(0, min(255, (int) ($obj['hours'] ?? 0))),
             ];
-
-            if (count($units) >= $limit) {
-                break;
-            }
         }
 
         return $units;

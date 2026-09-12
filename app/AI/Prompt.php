@@ -32,8 +32,48 @@ final class Prompt
             'lesson_plan' => self::lessonPlan($spec),
             'unit_outline' => self::unitOutline($spec),
             'assignment' => self::assignment($spec),
+            'unit_content' => self::unitContent($spec),
             default => $userPrompt,
         };
+    }
+
+    /**
+     * ร่างเนื้อหาของหน่วยการเรียนหนึ่งหน่วย แยกเป็นหัวข้อย่อยพร้อมคำอธิบาย
+     *
+     * @param array<string,mixed> $spec
+     */
+    private static function unitContent(array $spec): string
+    {
+        $count = max(2, min(10, (int) ($spec['count'] ?? 4)));
+        $keyContent = trim((string) ($spec['key_content'] ?? '')) ?: '(ไม่ได้ระบุ ให้อนุมานจากชื่อหน่วย)';
+        $objectives = trim((string) ($spec['objectives'] ?? '')) ?: '(ไม่ได้ระบุ)';
+        $existing = (array) ($spec['existing'] ?? []);
+        $existingText = $existing === []
+            ? 'ยังไม่มีหัวข้อย่อยเดิมในหน่วยนี้'
+            : "ห้ามซ้ำกับหัวข้อที่มีอยู่แล้ว:\n- " . implode("\n- ", $existing);
+        $note = trim((string) ($spec['note'] ?? ''));
+        $noteText = $note === '' ? '' : "\n\nสิ่งที่ครูสั่งเพิ่ม: {$note}";
+
+        return <<<TXT
+            เขียนเนื้อหาสำหรับสอนในหน่วยการเรียน "{$spec['unit']}" ของรายวิชา {$spec['course_code']} {$spec['course_name']}
+            แบ่งเป็น {$count} หัวข้อย่อย
+
+            สาระสำคัญของหน่วย:
+            {$keyContent}
+
+            จุดประสงค์การเรียนรู้:
+            {$objectives}
+
+            {$existingText}{$noteText}
+
+            ข้อกำหนดของคำตอบ — สำคัญมาก ห้ามผิดรูปแบบ:
+            1. ตอบเป็น NDJSON เท่านั้น หนึ่งหัวข้อต่อหนึ่งบรรทัด ห้ามครอบด้วย ``` ห้ามมีคำอธิบายนอก JSON
+            2. แต่ละบรรทัดใช้รูปแบบนี้
+            {"no":1,"title":"ชื่อหัวข้อย่อย","content":"เนื้อหาที่ใช้สอนได้จริง อธิบายให้ครบ ยกตัวอย่างจากงานอาชีพจริงประกอบ"}
+            3. เนื้อหาแต่ละหัวข้อยาวอย่างน้อย 5 ประโยค เขียนเป็นย่อหน้าอ่านรู้เรื่อง ขึ้นบรรทัดใหม่ด้วย \\n ได้
+            4. เรียงจากพื้นฐานไปสู่การประยุกต์ใช้ และให้ครอบคลุมจุดประสงค์การเรียนรู้ข้างต้น
+            5. เมื่อครบ {$count} หัวข้อ ให้ปิดท้ายด้วยบรรทัด {"done":true}
+            TXT;
     }
 
     /**
