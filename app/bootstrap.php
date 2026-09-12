@@ -74,8 +74,8 @@ $builder->addDefinitions([
     // เริ่มจากค่าเริ่มต้นของทั้งเว็บที่ผู้ดูแลตั้งไว้ — หน้าก่อนล็อกอิน (เข้าสู่ระบบ/สมัครสมาชิก/หน้า error)
     // ยังไม่รู้ว่าใครคือผู้ใช้ จึงเห็นสีนี้เสมอ ส่วนหลังล็อกอิน ViewContext จะสลับเป็นสีของผู้ใช้คนนั้นให้
     View::class => static fn (Config $config, SettingsRepository $settings): View => new View([
-        'appName' => $config->get('app.name'),
-        'college' => $config->get('app.college'),
+        'appName' => (string) $settings->get('site_name') ?: $config->get('app.name'),
+        'college' => (string) $settings->get('college_name') ?: $config->get('app.college'),
         'version' => $config->get('app.version'),
         'base' => Url::base(),
         'user' => null,

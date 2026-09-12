@@ -49,8 +49,8 @@ final class LandingController
             'groups' => $groups,
             'courseCount' => $courseCount,
             'pilotDept' => $pilotDept,
-            'college' => $this->config->get('app.college'),
-            'appName' => $this->config->get('app.name'),
+            'college' => (string) $this->settings->get('college_name') ?: $this->config->get('app.college'),
+            'appName' => (string) $this->settings->get('site_name') ?: $this->config->get('app.name'),
             'term' => $this->termLabel(),
         ]);
     }

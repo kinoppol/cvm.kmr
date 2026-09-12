@@ -6,6 +6,7 @@ use App\Auth\AuthMiddleware;
 use App\Auth\RoleMiddleware;
 use App\Controllers\Admin\AiController as AdminAiController;
 use App\Controllers\Admin\DemoController;
+use App\Controllers\Admin\GeneralController;
 use App\Controllers\Admin\MigrationController;
 use App\Controllers\Admin\UsersController as AdminUsersController;
 use App\Controllers\AiChatController;
@@ -23,6 +24,7 @@ use App\Controllers\RegisterController;
 use App\Controllers\ReviewController;
 use App\Controllers\SettingsController;
 use App\Controllers\StudentController;
+use App\Controllers\Teacher\StudentsController as TeacherStudentsController;
 use App\Support\ViewContext;
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
@@ -89,6 +91,18 @@ return static function (App $app): void {
         $group->get('/review', [ReviewController::class, 'index'])
             ->setName('review')->add(new RoleMiddleware(['teacher']));
 
+        // ครูจัดการข้อมูลนักเรียนของสถานศึกษาตัวเอง — เพิ่มทีละคนหรือนำเข้าจาก Excel
+        $group->group('/students', function (RouteCollectorProxy $s): void {
+            $s->get('', [TeacherStudentsController::class, 'index'])->setName('students');
+            $s->get('/new', [TeacherStudentsController::class, 'create']);
+            $s->post('', [TeacherStudentsController::class, 'store']);
+            $s->get('/import', [TeacherStudentsController::class, 'importForm']);
+            $s->get('/template', [TeacherStudentsController::class, 'template']);
+            $s->post('/import', [TeacherStudentsController::class, 'import']);
+            $s->get('/{id:[0-9]+}/edit', [TeacherStudentsController::class, 'edit']);
+            $s->post('/{id:[0-9]+}', [TeacherStudentsController::class, 'update']);
+        })->add(new RoleMiddleware(['teacher']));
+
         $group->group('/board', function (RouteCollectorProxy $b): void {
             $b->get('', [BoardController::class, 'index'])->setName('board');
             $b->get('/new', [BoardController::class, 'newGroup']);
@@ -149,6 +163,9 @@ return static function (App $app): void {
             $admin->post('/users/{id:[0-9]+}/approve', [AdminUsersController::class, 'approve']);
             $admin->post('/users/{id:[0-9]+}/reject', [AdminUsersController::class, 'reject']);
             $admin->post('/users/settings', [AdminUsersController::class, 'saveSettings']);
+
+            $admin->get('/settings', [GeneralController::class, 'index'])->setName('admin.settings');
+            $admin->post('/settings', [GeneralController::class, 'save']);
         })->add(new RoleMiddleware(['admin']));
     })->add(ViewContext::class)->add(AuthMiddleware::class);
 };

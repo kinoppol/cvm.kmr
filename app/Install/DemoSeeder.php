@@ -46,6 +46,7 @@ final class DemoSeeder
         $log[] = 'ล้างข้อมูลตัวอย่างเดิมแล้ว';
 
         $hash = password_hash(self::DEMO_PASSWORD, PASSWORD_DEFAULT);
+        $institutionId = $this->currentInstitutionId();
 
         // ---- สาขาวิชา ----
         $dept = [];
@@ -71,7 +72,7 @@ final class DemoSeeder
         ];
         $teacherId = [];
         foreach ($teachers as $username => [$fullName, $email, $_deptId]) {
-            $teacherId[$username] = $this->upsertUser($username, $fullName, $email, 'teacher', $hash);
+            $teacherId[$username] = $this->upsertUser($username, $fullName, $email, 'teacher', $hash, $institutionId);
         }
         $log[] = 'เพิ่มครูนำร่อง 6 คน (รหัสผ่านตัวอย่าง: ' . self::DEMO_PASSWORD . ')';
 
@@ -95,7 +96,7 @@ final class DemoSeeder
         $log[] = 'เพิ่มกลุ่มเรียน 4 กลุ่ม';
 
         // ---- นักเรียน ----
-        $studentIds = $this->seedStudents($hash, 28);
+        $studentIds = $this->seedStudents($hash, 28, $institutionId);
         $log[] = 'เพิ่มนักเรียน ' . count($studentIds) . ' คน';
 
         // ---- รายวิชาของ อ.ธนพล ----
@@ -228,11 +229,27 @@ final class DemoSeeder
         ]);
     }
 
-    private function upsertUser(string $username, string $fullName, ?string $email, string $role, string $hash): int
+    /** วิทยาลัยสำหรับข้อมูลตัวอย่าง — สร้างครั้งแรกถ้ายังไม่มี เพื่อให้นักเรียนล็อกอินได้ต้องเลือกสถานศึกษานี้ */
+    private function currentInstitutionId(): int
+    {
+        $name = 'วิทยาลัยเทคนิคร้อยเอ็ด';
+        $id = $this->db->int('SELECT id FROM {institutions} WHERE name = ?', [$name]);
+        if ($id > 0) {
+            return $id;
+        }
+
+        return $this->db->insert('institutions', ['name' => $name]);
+    }
+
+    private function upsertUser(string $username, string $fullName, ?string $email, string $role, string $hash, int $institutionId): int
     {
         $existing = $this->db->int('SELECT id FROM {users} WHERE username = ?', [$username]);
         if ($existing > 0) {
-            $this->db->update('users', ['full_name' => $fullName, 'email' => $email, 'role' => $role, 'status' => 'active'], ['id' => $existing]);
+            $this->db->update(
+                'users',
+                ['full_name' => $fullName, 'email' => $email, 'role' => $role, 'status' => 'active', 'institution_id' => $institutionId],
+                ['id' => $existing]
+            );
 
             return $existing;
         }
@@ -244,11 +261,12 @@ final class DemoSeeder
             'full_name' => $fullName,
             'role' => $role,
             'status' => 'active',
+            'institution_id' => $institutionId,
         ]);
     }
 
     /** @return list<int> */
-    private function seedStudents(string $hash, int $count): array
+    private function seedStudents(string $hash, int $count, int $institutionId): array
     {
         $first = ['ณัฐวุฒิ', 'ปิยะดา', 'อภิสิทธิ์', 'สมฤทัย', 'ธนกฤต', 'กนกวรรณ', 'จิรายุ', 'พรนภา',
             'ศักดิ์สิทธิ์', 'วรรณิษา', 'ธีรภัทร', 'อรอุมา', 'ณัฐพงษ์', 'สุพัตรา', 'กิตติศักดิ์', 'มธุรดา',
@@ -271,6 +289,7 @@ final class DemoSeeder
                 'full_name' => $name,
                 'role' => 'student',
                 'status' => 'active',
+                'institution_id' => $institutionId,
             ]);
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Auth\Auth;
+use App\Domain\InstitutionRepository;
 use App\Domain\SettingsRepository;
 use App\Support\Csrf;
 use App\Support\Flash;
@@ -21,11 +22,13 @@ final class RegisterController
 {
     private const USERNAME_PATTERN = '/^[a-z0-9._-]{3,64}$/';
     private const MIN_PASSWORD_LENGTH = 8;
+    private const NEW_INSTITUTION_VALUE = '__new__';
 
     public function __construct(
         private readonly Auth $auth,
         private readonly View $view,
         private readonly SettingsRepository $settings,
+        private readonly InstitutionRepository $institutions,
     ) {
     }
 
@@ -35,7 +38,9 @@ final class RegisterController
             return $this->redirect($response, '/dashboard');
         }
 
-        return $this->view->render($response, 'auth/register', $this->emptyForm());
+        return $this->view->render($response, 'auth/register', $this->emptyForm() + [
+            'institutions' => $this->institutions->all(),
+        ]);
     }
 
     public function register(Request $request, Response $response): Response
@@ -45,8 +50,16 @@ final class RegisterController
         if (!Csrf::check($data['_token'] ?? null)) {
             Flash::error('เซสชันหมดอายุ กรุณาลองใหม่อีกครั้ง');
 
-            return $this->view->render($response, 'auth/register', $this->emptyForm());
+            return $this->view->render($response, 'auth/register', $this->emptyForm() + [
+                'institutions' => $this->institutions->all(),
+            ]);
         }
+
+        $institutionChoice = (string) ($data['institution_id'] ?? '');
+        $institutionNew = trim((string) ($data['institution_new'] ?? ''));
+        $institutionName = $institutionChoice === self::NEW_INSTITUTION_VALUE
+            ? $institutionNew
+            : (string) ($this->institutions->find((int) $institutionChoice)['name'] ?? '');
 
         $form = [
             'username' => trim((string) ($data['username'] ?? '')),
@@ -54,7 +67,9 @@ final class RegisterController
             'full_name' => trim((string) ($data['full_name'] ?? '')),
             'phone' => trim((string) ($data['phone'] ?? '')),
             'subject_area' => trim((string) ($data['subject_area'] ?? '')),
-            'institution' => trim((string) ($data['institution'] ?? '')),
+            'institution' => $institutionName,
+            'institution_id' => $institutionChoice,
+            'institution_new' => $institutionNew,
         ];
         $password = (string) ($data['password'] ?? '');
         $confirm = (string) ($data['password_confirm'] ?? '');
@@ -66,13 +81,19 @@ final class RegisterController
                 Flash::error($error);
             }
 
-            return $this->view->render($response, 'auth/register', $form);
+            return $this->view->render($response, 'auth/register', $form + [
+                'institutions' => $this->institutions->all(),
+            ]);
         }
 
         $requireApproval = $this->settings->bool('registration_require_approval', true);
         $status = $requireApproval ? 'pending' : 'active';
 
-        $this->auth->registerTeacher($form + ['password' => $password], $status);
+        $institutionId = $this->institutions->findOrCreateByName($institutionName);
+        $this->auth->registerTeacher(
+            $form + ['password' => $password, 'institution' => $institutionName, 'institution_id' => $institutionId],
+            $status
+        );
         $this->auth->log('register.teacher', $form['username'], [
             'institution' => $form['institution'],
             'subject_area' => $form['subject_area'],
@@ -117,7 +138,7 @@ final class RegisterController
         }
 
         if ($form['institution'] === '') {
-            $errors[] = 'กรุณาระบุสถานศึกษาที่สังกัด';
+            $errors[] = 'กรุณาเลือกหรือระบุสถานศึกษาที่สังกัด';
         }
 
         if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
@@ -139,6 +160,7 @@ final class RegisterController
         return [
             'username' => '', 'email' => '', 'full_name' => '',
             'phone' => '', 'subject_area' => '', 'institution' => '',
+            'institution_id' => '', 'institution_new' => '',
         ];
     }
 

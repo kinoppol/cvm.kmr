@@ -17,8 +17,12 @@ final class Auth
     ) {
     }
 
-    /** @return array{ok:bool,message:string} */
-    public function attempt(string $username, string $password, string $ip): array
+    /**
+     * @param int|null $institutionId ระบุเมื่อเป็นการล็อกอินของนักเรียน (เลือกสถานศึกษามาด้วย)
+     *                                 ไม่ระบุ = ล็อกอินของครู/ผู้ดูแลระบบ (ค้นหาจากชื่อผู้ใช้ทั้งระบบ)
+     * @return array{ok:bool,message:string}
+     */
+    public function attempt(string $username, string $password, string $ip, ?int $institutionId = null): array
     {
         if ($this->isThrottled($username, $ip)) {
             return ['ok' => false, 'message' => sprintf(
@@ -28,7 +32,7 @@ final class Auth
             )];
         }
 
-        $user = $this->findByUsername($username);
+        $user = $this->findByUsername($username, $institutionId);
         $valid = $user !== null && password_verify($password, $user['password_hash']);
 
         $this->record($username, $ip, 'login', $valid);
@@ -167,13 +171,27 @@ final class Auth
         return $this->user() !== null;
     }
 
-    public function findByUsername(string $username): ?array
+    /**
+     * @param int|null $institutionId ระบุเมื่อค้นหาบัญชีนักเรียน (username unique เฉพาะภายในสถานศึกษา)
+     *                                 ไม่ระบุ = ค้นหาบัญชีครู/ผู้ดูแลระบบ (username unique ทั้งระบบ)
+     */
+    public function findByUsername(string $username, ?int $institutionId = null): ?array
     {
-        $stmt = $this->db->prepare(sprintf(
-            'SELECT id, username, email, full_name, password_hash, role, status FROM `%susers` WHERE username = ?',
-            $this->prefix
-        ));
-        $stmt->execute([$username]);
+        if ($institutionId !== null) {
+            $stmt = $this->db->prepare(sprintf(
+                "SELECT id, username, email, full_name, password_hash, role, status
+                 FROM `%susers` WHERE institution_id = ? AND username = ? AND role = 'student'",
+                $this->prefix
+            ));
+            $stmt->execute([$institutionId, $username]);
+        } else {
+            $stmt = $this->db->prepare(sprintf(
+                "SELECT id, username, email, full_name, password_hash, role, status
+                 FROM `%susers` WHERE username = ? AND role IN ('admin', 'teacher')",
+                $this->prefix
+            ));
+            $stmt->execute([$username]);
+        }
         $user = $stmt->fetch();
 
         return $user === false ? null : $user;
@@ -198,14 +216,14 @@ final class Auth
     /**
      * ครูสมัครสมาชิกเอง — status ขึ้นกับการตั้งค่าของระบบ ('pending' หรือ 'active')
      *
-     * @param array{username:string,email:string,password:string,full_name:string,phone:?string,subject_area:string,institution:string} $data
+     * @param array{username:string,email:string,password:string,full_name:string,phone:?string,subject_area:string,institution:string,institution_id:int} $data
      */
     public function registerTeacher(array $data, string $status = 'pending'): int
     {
         $stmt = $this->db->prepare(sprintf(
             'INSERT INTO `%susers`
-                (username, email, password_hash, full_name, role, status, phone, subject_area, institution)
-             VALUES (?, ?, ?, ?, \'teacher\', ?, ?, ?, ?)',
+                (username, email, password_hash, full_name, role, status, phone, subject_area, institution, institution_id)
+             VALUES (?, ?, ?, ?, \'teacher\', ?, ?, ?, ?, ?)',
             $this->prefix
         ));
         $stmt->execute([
@@ -217,6 +235,7 @@ final class Auth
             $data['phone'] ?: null,
             $data['subject_area'],
             $data['institution'],
+            $data['institution_id'],
         ]);
 
         return (int) $this->db->lastInsertId();

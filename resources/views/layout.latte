@@ -72,6 +72,7 @@
 
             {if $role === 'teacher'}
                 <a href="{$base}/courses" n:class="$page === 'courses' ? is-active"><span>▤</span>รายวิชาของฉัน</a>
+                <a href="{$base}/students" n:class="$page === 'students' ? is-active"><span>🧑‍🎓</span>นักเรียนของฉัน</a>
                 <a href="{$base}/review" n:class="$page === 'review' ? is-active">
                     <span>✓</span>รอตรวจก่อนเผยแพร่
                     {if $rc > 0}<span class="nav-badge">{$rc}</span>{/if}
@@ -90,6 +91,7 @@
                 <a href="{$base}/admin/ai" n:class="$page === 'admin-ai' ? is-active"><span>▣</span>เครื่อง AI และโควตา</a>
                 <a href="{$base}/admin/users" n:class="$page === 'admin-users' ? is-active"><span>◉</span>ผู้ใช้งาน</a>
                 <a href="{$base}/admin/migrations" n:class="$page === 'migrations' ? is-active"><span>▤</span>จัดการฐานข้อมูล</a>
+                <a href="{$base}/admin/settings" n:class="$page === 'admin-settings' ? is-active"><span>⚙</span>ตั้งค่าระบบ</a>
                 <a href="{$base}/settings/appearance" n:class="$page === 'appearance' ? is-active"><span>◐</span>สีหลักของหน้าจอ</a>
             {/if}
 

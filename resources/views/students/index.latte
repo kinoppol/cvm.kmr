@@ -1,0 +1,54 @@
+{layout '../layout.latte'}
+
+{block title}นักเรียนของฉัน{/block}
+
+{block content}
+<div class="page-head">
+    <div>
+        <h1>นักเรียนของฉัน</h1>
+        <div class="sub">ใช้ร่วมกันได้กับครูคนอื่นในสถานศึกษาเดียวกัน · {count($students)} คน</div>
+    </div>
+    <div class="actions">
+        <a class="btn" href="{$base}/students/import">นำเข้าจาก Excel</a>
+        <a class="btn btn-primary" href="{$base}/students/new">+ เพิ่มนักเรียน</a>
+    </div>
+</div>
+
+<form method="get" action="{$base}/students" class="field" style="max-width:340px;margin-bottom:16px">
+    <input class="input" type="search" name="q" value="{$search}" placeholder="ค้นหารหัสนักศึกษาหรือชื่อ">
+</form>
+
+{if $students}
+    <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-scroll">
+            <table class="data">
+                <thead>
+                    <tr><th>รหัสนักศึกษา</th><th>ชื่อ-สกุล</th><th>อีเมล</th><th>เบอร์โทรศัพท์</th><th>สถานะ</th><th></th></tr>
+                </thead>
+                <tbody>
+                {foreach $students as $s}
+                    <tr>
+                        <td class="mono">{$s['username']}</td>
+                        <td>{$s['full_name']}</td>
+                        <td class="mono" style="font-size:12.5px">{$s['email'] ?? '—'}</td>
+                        <td class="mono" style="font-size:12.5px">{$s['phone'] ?? '—'}</td>
+                        <td>
+                            {if $s['status'] === 'active'}<span class="chip chip-ok">ใช้งาน</span>
+                            {else}<span class="chip chip-err">ระงับ</span>{/if}
+                        </td>
+                        <td style="text-align:right">
+                            <a class="btn btn-sm" href="{$base}/students/{$s['id']}/edit">แก้ไข</a>
+                        </td>
+                    </tr>
+                {/foreach}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{else}
+    <div class="empty">
+        <h3>{if $search}ไม่พบนักเรียนที่ค้นหา{else}ยังไม่มีนักเรียนในระบบ{/if}</h3>
+        <p>เพิ่มทีละคน หรือ นำเข้ารายชื่อจากไฟล์ Excel ได้จากปุ่มด้านบน</p>
+    </div>
+{/if}
+{/block}

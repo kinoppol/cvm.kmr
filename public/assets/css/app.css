@@ -1088,3 +1088,12 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
 @media (max-width: 560px) {
     .register-form-grid { grid-template-columns: 1fr; }
 }
+
+/* ---------- แท็บเลือกประเภทผู้ใช้ในหน้าล็อกอิน ---------- */
+.login-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.login-tab {
+    flex: 1; text-align: center; padding: 9px 10px; border-radius: 10px;
+    border: 1px solid var(--line); font-size: 13px; cursor: pointer; color: var(--ink2);
+}
+.login-tab.is-active { border-color: var(--brand); color: var(--brand); background: var(--brandSoft); }
+.login-tab input { position: absolute; opacity: 0; pointer-events: none; }

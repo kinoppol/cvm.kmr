@@ -69,9 +69,20 @@
                        placeholder="เช่น ช่างยนต์, การตลาด" required>
             </div>
             <div class="field">
-                <label for="institution">สถานศึกษาที่สังกัด</label>
-                <input class="input" type="text" id="institution" name="institution" value="{$institution}"
-                       placeholder="เช่น วิทยาลัยเทคนิคร้อยเอ็ด" required>
+                <label for="institution_id">สถานศึกษาที่สังกัด</label>
+                <select class="input" id="institution_id" name="institution_id" required
+                        onchange="document.getElementById('institution_new_field').hidden = this.value !== '__new__'">
+                    <option value="">— เลือกสถานศึกษา —</option>
+                    {foreach $institutions as $inst}
+                        <option value="{$inst['id']}" n:attr="selected: (string) $inst['id'] === $institution_id">{$inst['name']}</option>
+                    {/foreach}
+                    <option value="__new__" n:attr="selected: $institution_id === '__new__'">อื่นๆ (ระบุชื่อสถานศึกษาใหม่)</option>
+                </select>
+            </div>
+            <div class="field" id="institution_new_field" n:attr="hidden: $institution_id !== '__new__'">
+                <label for="institution_new">ชื่อสถานศึกษาใหม่</label>
+                <input class="input" type="text" id="institution_new" name="institution_new" value="{$institution_new}"
+                       placeholder="เช่น วิทยาลัยเทคนิคร้อยเอ็ด">
             </div>
 
             <div class="field">

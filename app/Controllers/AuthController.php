@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Auth\Auth;
+use App\Domain\InstitutionRepository;
 use App\Support\Csrf;
 use App\Support\Flash;
 use App\Support\Url;
@@ -17,6 +18,7 @@ final class AuthController
     public function __construct(
         private readonly Auth $auth,
         private readonly View $view,
+        private readonly InstitutionRepository $institutions,
     ) {
     }
 
@@ -26,7 +28,12 @@ final class AuthController
             return $this->redirect($response, '/dashboard');
         }
 
-        return $this->view->render($response, 'auth/login', ['username' => '']);
+        return $this->view->render($response, 'auth/login', [
+            'username' => '',
+            'as' => 'staff',
+            'institution_id' => '',
+            'institutions' => $this->institutions->all(),
+        ]);
     }
 
     public function login(Request $request, Response $response): Response
@@ -34,6 +41,15 @@ final class AuthController
         $data = (array) $request->getParsedBody();
         $username = trim((string) ($data['username'] ?? ''));
         $password = (string) ($data['password'] ?? '');
+        $as = (string) ($data['as'] ?? 'staff') === 'student' ? 'student' : 'staff';
+        $institutionId = ((int) ($data['institution_id'] ?? 0)) ?: null;
+
+        $formState = [
+            'username' => $username,
+            'as' => $as,
+            'institution_id' => (string) ($data['institution_id'] ?? ''),
+            'institutions' => $this->institutions->all(),
+        ];
 
         if (!Csrf::check($data['_token'] ?? null)) {
             Flash::error('เซสชันหมดอายุ กรุณาลองใหม่อีกครั้ง');
@@ -41,19 +57,21 @@ final class AuthController
             return $this->redirect($response, '/login');
         }
 
-        if ($username === '' || $password === '') {
-            Flash::error('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+        if ($username === '' || $password === '' || ($as === 'student' && $institutionId === null)) {
+            Flash::error($as === 'student'
+                ? 'กรุณาเลือกสถานศึกษา และกรอกรหัสนักศึกษา/รหัสผ่านให้ครบ'
+                : 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
 
-            return $this->view->render($response, 'auth/login', ['username' => $username]);
+            return $this->view->render($response, 'auth/login', $formState);
         }
 
         $ip = (string) ($request->getServerParams()['REMOTE_ADDR'] ?? '0.0.0.0');
-        $result = $this->auth->attempt($username, $password, $ip);
+        $result = $this->auth->attempt($username, $password, $ip, $as === 'student' ? $institutionId : null);
 
         if (!$result['ok']) {
             Flash::error($result['message']);
 
-            return $this->view->render($response, 'auth/login', ['username' => $username]);
+            return $this->view->render($response, 'auth/login', $formState);
         }
 
         $this->auth->log('login');
