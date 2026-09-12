@@ -2,7 +2,7 @@
     ช่องสนทนาลอย — ถามผู้ช่วย AI ได้ทุกหน้า และสั่งให้ช่วยทำงานบางอย่าง (เช่น สร้างรายวิชา) ได้
     ต้องมี $base และ $csrf (View แชร์ให้ทุกหน้าอยู่แล้ว) และเปิดให้เฉพาะครู/ผู้ดูแล
 *}
-{var $isTeacher = ($user['role'] ?? '') === 'teacher'}
+{var $isTeacher = in_array($user['role'] ?? '', ['teacher', 'supervisor'], true)}
 <button type="button" class="aichat-fab" id="aichatFab" aria-expanded="false" aria-controls="aichatPanel">
     <span class="aichat-fab-icon">✦</span>
     <span class="aichat-fab-text">ผู้ช่วย AI</span>

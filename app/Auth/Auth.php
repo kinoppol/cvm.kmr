@@ -187,7 +187,7 @@ final class Auth
         } else {
             $stmt = $this->db->prepare(sprintf(
                 "SELECT id, username, email, full_name, password_hash, role, status
-                 FROM `%susers` WHERE username = ? AND role IN ('admin', 'teacher')",
+                 FROM `%susers` WHERE username = ? AND role IN ('admin', 'supervisor', 'teacher')",
                 $this->prefix
             ));
             $stmt->execute([$username]);

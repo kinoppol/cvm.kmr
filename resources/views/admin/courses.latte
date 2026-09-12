@@ -55,7 +55,7 @@
                     <tr>
                         <td class="mono">{$c['code']}</td>
                         <td>
-                            {$c['name']}
+                            <a href="{$base}/admin/courses/{$c['id']}">{$c['name']}</a>
                             {if $c['show_on_landing']}<span class="chip chip-muted" style="margin-left:6px">หน้าแรก</span>{/if}
                         </td>
                         <td>{$c['teacher_name'] ?? '— ไม่มีเจ้าของ —'}</td>

@@ -37,8 +37,10 @@ final class DashboardController
         /** @var array<string,mixed> $user */
         $user = $request->getAttribute('user');
 
+        // ผู้ดูแลครูมีรายวิชาของตัวเองเหมือนครูทั่วไป จึงเห็นหน้าแรกแบบเดียวกัน
+        // ส่วนงานกำกับดูแลอยู่ในเมนูด้านข้าง ไม่ใช่ภาพรวมเครื่อง AI ของผู้ดูแลระบบ
         return match ($user['role']) {
-            'teacher' => $this->teacher($response, $user),
+            'teacher', 'supervisor' => $this->teacher($response, $user),
             'student' => $this->student($response, $user),
             default => $this->admin($response, $user),
         };

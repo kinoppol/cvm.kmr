@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Auth\Auth;
+use App\Auth\Roles;
 use App\Domain\ReviewRepository;
 use App\Domain\SettingsRepository;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -38,8 +39,12 @@ final class ViewContext implements MiddlewareInterface
         ));
         $this->view->share('impersonatedBy', $this->auth->isImpersonating() ? $this->auth->impersonatorName() : null);
 
-        if (is_array($user) && ($user['role'] ?? '') === 'teacher') {
-            $this->view->share('reviewCount', $this->reviews->pendingCount((int) $user['id']));
+        if (is_array($user)) {
+            $this->view->share('roleLabel', Roles::label((string) ($user['role'] ?? '')));
+
+            if (Roles::teaches($user['role'] ?? null)) {
+                $this->view->share('reviewCount', $this->reviews->pendingCount((int) $user['id']));
+            }
         }
 
         return $handler->handle($request);

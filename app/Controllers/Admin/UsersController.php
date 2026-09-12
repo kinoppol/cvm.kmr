@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Auth\Auth;
+use App\Auth\Roles;
 use App\Domain\SettingsRepository;
 use App\Support\Csrf;
 use App\Support\Db;
@@ -57,22 +58,24 @@ final class UsersController
                 'filter' => 'pending',
                 'pendingCount' => $pendingCount,
                 'requireApproval' => $this->settings->bool('registration_require_approval', true),
-            ]);
+            ] + $this->adminContext($request));
         }
 
-        $roles = ['admin', 'teacher', 'student'];
+        $roles = [Roles::ADMIN, Roles::SUPERVISOR, Roles::TEACHER, Roles::STUDENT];
         $where = in_array($role, $roles, true) ? 'WHERE role = ?' : '';
         $params = $where ? [$role] : [];
 
         $users = $this->db->all(
             "SELECT id, username, full_name, email, role, status, last_login_at
              FROM {users} $where
-             ORDER BY FIELD(status, 'pending', 'active', 'suspended'), FIELD(role, 'admin', 'teacher', 'student'), username
+             ORDER BY FIELD(status, 'pending', 'active', 'suspended'),
+                      FIELD(role, 'admin', 'supervisor', 'teacher', 'student'), username
              LIMIT 500",
             $params
         );
         foreach ($users as $i => $u) {
             $users[$i]['last_login_text'] = $u['last_login_at'] ? Thai::ago($u['last_login_at']) : 'ยังไม่เคยเข้าใช้';
+            $users[$i]['role_label'] = Roles::label((string) $u['role']);
         }
 
         return $this->view->render($response, 'admin/users', [
@@ -83,7 +86,25 @@ final class UsersController
             'filter' => $role,
             'pendingCount' => $pendingCount,
             'requireApproval' => $this->settings->bool('registration_require_approval', true),
-        ]);
+        ] + $this->adminContext($request));
+    }
+
+    /**
+     * สิ่งที่หน้าผู้ใช้งานต้องรู้เพิ่ม — ผู้ดูแลครูเห็นรายชื่อได้ แต่ปุ่มสวมสิทธิ์ รีเซ็ตรหัสผ่าน
+     * และการแต่งตั้งบทบาทเป็นของผู้ดูแลระบบเท่านั้น
+     *
+     * @return array<string,mixed>
+     */
+    private function adminContext(Request $request): array
+    {
+        return [
+            'isAdmin' => (($request->getAttribute('user')['role'] ?? '')) === Roles::ADMIN,
+            'roleOptions' => [
+                Roles::TEACHER => Roles::label(Roles::TEACHER),
+                Roles::SUPERVISOR => Roles::label(Roles::SUPERVISOR),
+                Roles::ADMIN => Roles::label(Roles::ADMIN),
+            ],
+        ];
     }
 
     /** อนุมัติครูที่สมัครสมาชิกเอง — เปิดให้เข้าสู่ระบบได้ */
@@ -201,6 +222,55 @@ final class UsersController
             $target['full_name'],
             $link
         ));
+
+        return $this->redirect($response);
+    }
+
+    /** ผู้ดูแลระบบแต่งตั้งบทบาทของบุคลากร — ครูผู้สอน / ผู้ดูแลครู / ผู้ดูแลระบบ */
+    public function changeRole(Request $request, Response $response, array $args): Response
+    {
+        $data = (array) $request->getParsedBody();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirect($response);
+        }
+
+        $id = (int) $args['id'];
+        $role = (string) ($data['role'] ?? '');
+        $actor = $request->getAttribute('user');
+
+        if (!in_array($role, Roles::ASSIGNABLE, true)) {
+            Flash::error('บทบาทที่เลือกไม่ถูกต้อง');
+
+            return $this->redirect($response);
+        }
+
+        if ($id === (int) $actor['id']) {
+            Flash::error('เปลี่ยนบทบาทของบัญชีตัวเองไม่ได้ ให้ผู้ดูแลระบบคนอื่นเป็นผู้เปลี่ยนให้');
+
+            return $this->redirect($response);
+        }
+
+        $target = $this->db->first('SELECT full_name, role FROM {users} WHERE id = ?', [$id]);
+        if ($target === null || $target['role'] === Roles::STUDENT) {
+            Flash::error('เปลี่ยนบทบาทได้เฉพาะบัญชีบุคลากรเท่านั้น');
+
+            return $this->redirect($response);
+        }
+
+        // กันเผลอถอดผู้ดูแลระบบคนสุดท้ายออกจนไม่มีใครเข้าถึงส่วนที่สงวนไว้ได้อีก
+        $admins = $this->db->int("SELECT COUNT(*) FROM {users} WHERE role = 'admin' AND status = 'active'");
+        if ($target['role'] === Roles::ADMIN && $role !== Roles::ADMIN && $admins <= 1) {
+            Flash::error('ต้องเหลือผู้ดูแลระบบอย่างน้อยหนึ่งบัญชี');
+
+            return $this->redirect($response);
+        }
+
+        $this->db->update('users', ['role' => $role], ['id' => $id]);
+        $this->auth->log('user.role.change', 'user#' . $id, ['from' => $target['role'], 'to' => $role]);
+
+        Flash::success('ตั้ง ' . $target['full_name'] . ' เป็น' . Roles::label($role) . 'แล้ว');
 
         return $this->redirect($response);
     }

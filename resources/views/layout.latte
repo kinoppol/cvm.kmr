@@ -36,10 +36,13 @@
 <body>
 {var $role = $user['role'] ?? 'student'}
 {var $rc = $reviewCount ?? 0}
+{var $teaches = $role === 'teacher' || $role === 'supervisor'}
+{var $oversees = $role === 'admin' || $role === 'supervisor'}
+{var $roleName = $roleLabel ?? ($role === 'admin' ? 'ผู้ดูแลระบบ' : ($role === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน'))}
 <div class="app">
     {if isset($impersonatedBy) && $impersonatedBy}
         <div class="impersonate-bar">
-            <span>กำลังใช้งานในนาม <strong>{$user['full_name'] ?? 'ผู้ใช้'}</strong> ({$role === 'teacher' ? 'ครูผู้สอน' : ($role === 'admin' ? 'ผู้ดูแลระบบ' : 'นักเรียน')}) · สวมสิทธิ์โดย {$impersonatedBy}</span>
+            <span>กำลังใช้งานในนาม <strong>{$user['full_name'] ?? 'ผู้ใช้'}</strong> ({$roleName}) · สวมสิทธิ์โดย {$impersonatedBy}</span>
             <form method="post" action="{$base}/impersonate/stop">
                 <input type="hidden" name="_token" value="{$csrf}">
                 <button type="submit">กลับเป็นผู้ดูแล</button>
@@ -57,7 +60,7 @@
             <div class="avatar">{mb_substr($user['full_name'] ?? '?', 0, 2)}</div>
             <div class="who-name">
                 {$user['full_name'] ?? 'ผู้ใช้'}
-                <span class="text-muted">· {$role === 'admin' ? 'ผู้ดูแลระบบ' : ($role === 'teacher' ? 'ครูผู้สอน' : 'นักเรียน')}</span>
+                <span class="text-muted">· {$roleName}</span>
             </div>
         </div>
         <form method="post" action="{$base}/{isset($impersonatedBy) && $impersonatedBy ? 'impersonate/stop' : 'logout'}">
@@ -70,7 +73,7 @@
         <nav class="sidebar">
             <a href="{$base}/dashboard" n:class="$page === 'dashboard' ? is-active"><span>⌂</span>หน้าแรก</a>
 
-            {if $role === 'teacher'}
+            {if $teaches}
                 <a href="{$base}/courses" n:class="$page === 'courses' ? is-active"><span>▤</span>รายวิชาของฉัน</a>
                 <a href="{$base}/students" n:class="$page === 'students' ? is-active"><span>🧑‍🎓</span>นักเรียนของฉัน</a>
                 <a href="{$base}/review" n:class="$page === 'review' ? is-active">
@@ -86,14 +89,21 @@
                 <a href="{$base}/learn" n:class="$page === 'learn' ? is-active"><span>▤</span>วิชาที่เรียน</a>
             {/if}
 
+            {if $oversees}
+                <div class="group-label">งานกำกับดูแล</div>
+                <a href="{$base}/admin/users" n:class="$page === 'admin-users' ? is-active"><span>◉</span>ผู้ใช้งาน</a>
+                <a href="{$base}/admin/courses" n:class="$page === 'admin-courses' ? is-active"><span>▤</span>รายวิชาทั้งระบบ</a>
+            {/if}
+
             {if $role === 'admin'}
                 <div class="group-label">สำหรับผู้ดูแลระบบ</div>
                 <a href="{$base}/admin/ai" n:class="$page === 'admin-ai' ? is-active"><span>▣</span>เครื่อง AI และโควตา</a>
-                <a href="{$base}/admin/users" n:class="$page === 'admin-users' ? is-active"><span>◉</span>ผู้ใช้งาน</a>
-                <a href="{$base}/admin/courses" n:class="$page === 'admin-courses' ? is-active"><span>▤</span>รายวิชาทั้งระบบ</a>
                 <a href="{$base}/admin/migrations" n:class="$page === 'migrations' ? is-active"><span>▤</span>จัดการฐานข้อมูล</a>
                 <a href="{$base}/admin/logs" n:class="$page === 'admin-logs' ? is-active"><span>⚠</span>บันทึกข้อขัดข้อง</a>
                 <a href="{$base}/admin/settings" n:class="$page === 'admin-settings' ? is-active"><span>⚙</span>ตั้งค่าระบบ</a>
+            {/if}
+
+            {if $role === 'admin'}
                 <a href="{$base}/settings/appearance" n:class="$page === 'appearance' ? is-active"><span>◐</span>สีหลักของหน้าจอ</a>
             {/if}
 
@@ -112,12 +122,16 @@
 
     <nav class="mobile-nav">
         <a href="{$base}/dashboard" n:class="$page === 'dashboard' ? is-active"><span>⌂</span>หน้าแรก</a>
-        {if $role === 'teacher'}
+        {if $teaches}
             <a href="{$base}/courses" n:class="$page === 'courses' ? is-active"><span>▤</span>รายวิชา</a>
             <a href="{$base}/review" n:class="$page === 'review' ? is-active">
                 <span>✓{if $rc > 0}<i class="mobile-badge">{$rc}</i>{/if}</span>รอตรวจ
             </a>
-            <a href="{$base}/board" n:class="$page === 'board' ? is-active"><span>💬</span>สนทนา</a>
+            {if $oversees}
+                <a href="{$base}/admin/courses" n:class="$page === 'admin-courses' ? is-active"><span>▤</span>ทั้งระบบ</a>
+            {else}
+                <a href="{$base}/board" n:class="$page === 'board' ? is-active"><span>💬</span>สนทนา</a>
+            {/if}
         {elseif $role === 'student'}
             <a href="{$base}/learn" n:class="$page === 'learn' ? is-active"><span>▤</span>วิชาที่เรียน</a>
         {else}
@@ -130,7 +144,7 @@
 {include '_partials/confirm.latte'}
 <script src="{$base}/assets/js/confirm.js" defer></script>
 
-{if $role === 'teacher' || $role === 'admin'}
+{if $role !== 'student'}
     {include '_partials/ai-chat.latte'}
 {/if}
 

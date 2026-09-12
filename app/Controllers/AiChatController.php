@@ -8,6 +8,7 @@ use App\AI\AiRouter;
 use App\AI\AiUnavailableException;
 use App\AI\JsonStream;
 use App\Auth\Auth;
+use App\Auth\Roles;
 use App\Domain\AiRepository;
 use App\Domain\CourseRepository;
 use App\Domain\SettingsRepository;
@@ -119,7 +120,7 @@ final class AiChatController
             'task' => 'chat',
             'message' => $attached === '' ? $message : $attached . "\n\n---\n\nคำถามหรือคำสั่งของครู:\n" . $message,
         ], JSON_UNESCAPED_UNICODE);
-        $isTeacher = ($user['role'] ?? '') === 'teacher';
+        $isTeacher = Roles::teaches($user['role'] ?? null);
 
         $chars = 0;
         $mode = null;      // null = ยังไม่รู้ว่าเป็นข้อความหรือคำสั่ง, 'text', 'action'

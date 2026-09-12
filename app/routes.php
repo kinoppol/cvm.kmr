@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Auth\AuthMiddleware;
 use App\Auth\RoleMiddleware;
+use App\Auth\Roles;
 use App\Controllers\Admin\AiController as AdminAiController;
 use App\Controllers\Admin\DemoController;
 use App\Controllers\Admin\CoursesController as AdminCoursesController;
@@ -64,13 +65,13 @@ return static function (App $app): void {
             $c->get('/stream', [AiChatController::class, 'stream']);
             $c->post('/prepare', [AiChatController::class, 'prepare']);
             $c->post('/attach', [AiChatController::class, 'attach']);
-        })->add(new RoleMiddleware(['teacher', 'admin']));
+        })->add(new RoleMiddleware(Roles::STAFF));
 
         // ผู้ช่วยสร้างรายวิชา/หน่วยการเรียนให้ตามคำขอ — ครูต้องกดยืนยันจากการ์ดในช่องสนทนาก่อนเสมอ
         $group->post('/ai/chat/create-course', [AiChatController::class, 'createCourse'])
-            ->add(new RoleMiddleware(['teacher']));
+            ->add(new RoleMiddleware(Roles::TEACHING));
         $group->post('/ai/chat/create-unit', [AiChatController::class, 'createUnit'])
-            ->add(new RoleMiddleware(['teacher']));
+            ->add(new RoleMiddleware(Roles::TEACHING));
 
         $group->group('/courses', function (RouteCollectorProxy $t): void {
             $t->get('', [CourseController::class, 'index'])->setName('courses');
@@ -100,10 +101,10 @@ return static function (App $app): void {
             $t->get('/{courseId:[0-9]+}/lesson-plan/{id:[0-9]+}', [LessonPlanController::class, 'edit']);
             $t->get('/{courseId:[0-9]+}/lesson-plan/{id:[0-9]+}/export.{format:doc|pdf}', [LessonPlanController::class, 'export']);
             $t->post('/{courseId:[0-9]+}/lesson-plan/{id:[0-9]+}', [LessonPlanController::class, 'save']);
-        })->add(new RoleMiddleware(['teacher']));
+        })->add(new RoleMiddleware(Roles::TEACHING));
 
         $group->get('/review', [ReviewController::class, 'index'])
-            ->setName('review')->add(new RoleMiddleware(['teacher']));
+            ->setName('review')->add(new RoleMiddleware(Roles::TEACHING));
 
         // ครูจัดการข้อมูลนักเรียนของสถานศึกษาตัวเอง — เพิ่มทีละคนหรือนำเข้าจาก Excel
         $group->group('/students', function (RouteCollectorProxy $s): void {
@@ -115,7 +116,7 @@ return static function (App $app): void {
             $s->post('/import', [TeacherStudentsController::class, 'import']);
             $s->get('/{id:[0-9]+}/edit', [TeacherStudentsController::class, 'edit']);
             $s->post('/{id:[0-9]+}', [TeacherStudentsController::class, 'update']);
-        })->add(new RoleMiddleware(['teacher']));
+        })->add(new RoleMiddleware(Roles::TEACHING));
 
         $group->group('/board', function (RouteCollectorProxy $b): void {
             $b->get('', [BoardController::class, 'index'])->setName('board');
@@ -131,7 +132,7 @@ return static function (App $app): void {
             $b->post('/{groupId:[0-9]+}/topics', [BoardController::class, 'saveTopic']);
             $b->get('/{groupId:[0-9]+}/topics/{topicId:[0-9]+}', [BoardController::class, 'topic']);
             $b->post('/{groupId:[0-9]+}/topics/{topicId:[0-9]+}/replies', [BoardController::class, 'saveReply']);
-        })->add(new RoleMiddleware(['teacher']));
+        })->add(new RoleMiddleware(Roles::TEACHING));
 
         $group->group('/learn', function (RouteCollectorProxy $s): void {
             $s->get('', [StudentController::class, 'courses'])->setName('learn');
@@ -155,8 +156,22 @@ return static function (App $app): void {
             $s->post('/ai/disconnect', [SettingsController::class, 'disconnect']);
             $s->post('/ai/mode', [SettingsController::class, 'mode']);
             $s->post('/ai/route', [SettingsController::class, 'route']);
-        })->add(new RoleMiddleware(['teacher']));
+        })->add(new RoleMiddleware(Roles::TEACHING));
 
+        // งานกำกับดูแล — ผู้ดูแลระบบและผู้ดูแลครูเข้าได้เท่ากัน
+        $group->group('/admin', function (RouteCollectorProxy $o): void {
+            $o->get('/users', [AdminUsersController::class, 'index'])->setName('admin.users');
+            $o->post('/users/{id:[0-9]+}/approve', [AdminUsersController::class, 'approve']);
+            $o->post('/users/{id:[0-9]+}/reject', [AdminUsersController::class, 'reject']);
+            $o->post('/users/settings', [AdminUsersController::class, 'saveSettings']);
+
+            $o->get('/courses', [AdminCoursesController::class, 'index'])->setName('admin.courses');
+            $o->get('/courses/{id:[0-9]+}', [AdminCoursesController::class, 'show']);
+            $o->get('/courses/{id:[0-9]+}/units/{unitId:[0-9]+}', [AdminCoursesController::class, 'unit']);
+        })->add(new RoleMiddleware(Roles::OVERSIGHT));
+
+        // สงวนไว้ให้ผู้ดูแลระบบ — AI โควตา ฐานข้อมูล บันทึกข้อขัดข้อง ตั้งค่าระบบ
+        // และงานที่กระทบบัญชีคนอื่นโดยตรง (สวมสิทธิ์ รีเซ็ตรหัสผ่าน แต่งตั้งบทบาท)
         $group->group('/admin', function (RouteCollectorProxy $admin): void {
             $admin->get('/migrations', [MigrationController::class, 'index'])->setName('admin.migrations');
             $admin->get('/migrations/preview/{name}', [MigrationController::class, 'preview']);
@@ -172,15 +187,10 @@ return static function (App $app): void {
             $admin->post('/ai/endpoint', [AdminAiController::class, 'saveEndpoint']);
             $admin->post('/ai/endpoint/test', [AdminAiController::class, 'testEndpoint']);
             $admin->post('/ai/courses/{id:[0-9]+}/features', [AdminAiController::class, 'saveCourseFeatures']);
-            $admin->get('/users', [AdminUsersController::class, 'index'])->setName('admin.users');
             $admin->post('/users/{id:[0-9]+}/impersonate', [ImpersonationController::class, 'start']);
-            $admin->post('/users/{id:[0-9]+}/approve', [AdminUsersController::class, 'approve']);
-            $admin->post('/users/{id:[0-9]+}/reject', [AdminUsersController::class, 'reject']);
-            $admin->post('/users/settings', [AdminUsersController::class, 'saveSettings']);
             $admin->post('/users/{id:[0-9]+}/reset-password', [AdminUsersController::class, 'resetPassword']);
             $admin->post('/users/{id:[0-9]+}/reset-link', [AdminUsersController::class, 'resetLink']);
-
-            $admin->get('/courses', [AdminCoursesController::class, 'index'])->setName('admin.courses');
+            $admin->post('/users/{id:[0-9]+}/role', [AdminUsersController::class, 'changeRole']);
 
             $admin->get('/logs', [LogsController::class, 'index'])->setName('admin.logs');
             $admin->get('/logs/download', [LogsController::class, 'download']);
