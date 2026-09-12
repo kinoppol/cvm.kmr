@@ -136,7 +136,8 @@ $app->add(function (ServerRequestInterface $request, RequestHandlerInterface $ha
 });
 
 $debug = (bool) $config->get('app.debug', false);
-$errorMiddleware = $app->addErrorMiddleware($debug, true, true, $container->get(LoggerInterface::class));
+// ไม่ให้ middleware บันทึกซ้ำ เพราะตัวจัดการด้านล่างบันทึกเองพร้อมหมายเลขอ้างอิงและรายละเอียดครบกว่า
+$errorMiddleware = $app->addErrorMiddleware($debug, false, true, $container->get(LoggerInterface::class));
 
 $errorMiddleware->setDefaultErrorHandler(
     function (ServerRequestInterface $request, Throwable $exception) use ($app, $container, $debug): ResponseInterface {
@@ -149,6 +150,28 @@ $errorMiddleware->setDefaultErrorHandler(
             default => ['ระบบขัดข้อง', 'เกิดข้อผิดพลาดที่ไม่คาดคิด ระบบได้บันทึกไว้แล้ว กรุณาลองใหม่อีกครั้ง'],
         };
 
+        // ข้อขัดข้องของระบบ (ไม่ใช่ 404/403 ที่ผู้ใช้พิมพ์ผิดเอง) ได้หมายเลขอ้างอิงติดตัวไว้
+        // ผู้ใช้แจ้งหมายเลขนี้มา ผู้ดูแลก็ค้นรายละเอียดเต็ม ๆ ได้จาก /admin/logs
+        $ref = null;
+        if ($status >= 500) {
+            $ref = strtoupper(bin2hex(random_bytes(3)));
+
+            // เขียนบันทึกไม่ได้ (เช่น storage/logs ไม่มีสิทธิ์เขียน) ก็ยังต้องได้หน้าแจ้งเตือนภาษาไทยตามปกติ
+            try {
+                $container->get(LoggerInterface::class)->error($exception->getMessage(), [
+                    'ref' => $ref,
+                    'method' => $request->getMethod(),
+                    'uri' => (string) $request->getUri(),
+                    'user_id' => $_SESSION['user_id'] ?? null,
+                    'ip' => $request->getServerParams()['REMOTE_ADDR'] ?? null,
+                    'file' => $exception->getFile() . ':' . $exception->getLine(),
+                    'trace' => $exception->getTraceAsString(),
+                ]);
+            } catch (Throwable) {
+                $ref = null;
+            }
+        }
+
         return $container->get(View::class)->render(
             $app->getResponseFactory()->createResponse($status),
             'error',
@@ -156,6 +179,7 @@ $errorMiddleware->setDefaultErrorHandler(
                 'title' => $title,
                 'message' => $message,
                 'detail' => $debug ? $exception->getMessage() : null,
+                'ref' => $ref,
             ]
         );
     }

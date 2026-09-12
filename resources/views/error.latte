@@ -35,6 +35,14 @@
             <div class="sub">{$message}</div>
         </div>
 
+        {if isset($ref) && $ref}
+            <div class="error-ref">
+                <span>หมายเลขอ้างอิง</span>
+                <strong class="mono">{$ref}</strong>
+                <span class="hint">แจ้งหมายเลขนี้กับผู้ดูแลระบบเพื่อให้ตรวจสอบสาเหตุได้ตรงเหตุการณ์</span>
+            </div>
+        {/if}
+
         {if $detail}
             <pre class="sql">{$detail}</pre>
         {/if}

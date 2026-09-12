@@ -1107,3 +1107,22 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
 }
 .login-tab-icon { font-size: 15px; line-height: 1; }
 .login-tab input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+
+/* ---------- หมายเลขอ้างอิงในหน้าแจ้งข้อขัดข้อง ---------- */
+.error-ref {
+    display: grid; gap: 4px; justify-items: center; text-align: center;
+    margin: 4px 0 18px; padding: 14px 16px; border-radius: 12px;
+    background: var(--surface2); border: 1px solid var(--line);
+}
+.error-ref > span:first-child { font-size: 12.5px; color: var(--ink3); }
+.error-ref strong { font-size: 19px; letter-spacing: 2px; color: var(--ink); }
+
+/* ---------- บันทึกข้อขัดข้องของผู้ดูแล ---------- */
+.log-line { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.log-line:last-child { border-bottom: 0; }
+.log-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.log-ref { font: 600 12px/1 var(--mono); letter-spacing: 1px; color: var(--brand); }
+.log-msg {
+    margin: 0; font: 400 12.5px/1.7 var(--mono); color: var(--ink2);
+    white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto;
+}

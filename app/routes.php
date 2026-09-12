@@ -7,6 +7,7 @@ use App\Auth\RoleMiddleware;
 use App\Controllers\Admin\AiController as AdminAiController;
 use App\Controllers\Admin\DemoController;
 use App\Controllers\Admin\GeneralController;
+use App\Controllers\Admin\LogsController;
 use App\Controllers\Admin\MigrationController;
 use App\Controllers\Admin\UsersController as AdminUsersController;
 use App\Controllers\AiChatController;
@@ -170,6 +171,9 @@ return static function (App $app): void {
             $admin->post('/users/settings', [AdminUsersController::class, 'saveSettings']);
             $admin->post('/users/{id:[0-9]+}/reset-password', [AdminUsersController::class, 'resetPassword']);
             $admin->post('/users/{id:[0-9]+}/reset-link', [AdminUsersController::class, 'resetLink']);
+
+            $admin->get('/logs', [LogsController::class, 'index'])->setName('admin.logs');
+            $admin->get('/logs/download', [LogsController::class, 'download']);
 
             $admin->get('/settings', [GeneralController::class, 'index'])->setName('admin.settings');
             $admin->post('/settings', [GeneralController::class, 'save']);
