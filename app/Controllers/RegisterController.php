@@ -89,11 +89,18 @@ final class RegisterController
         $requireApproval = $this->settings->bool('registration_require_approval', true);
         $status = $requireApproval ? 'pending' : 'active';
 
-        $institutionId = $this->institutions->findOrCreateByName($institutionName);
-        $this->auth->registerTeacher(
-            $form + ['password' => $password, 'institution' => $institutionName, 'institution_id' => $institutionId],
-            $status
-        );
+        // ส่งค่าทีละช่อง ไม่รวมร่างจาก $form เพราะใน $form เก็บ institution_id เป็นค่าที่เลือกจากฟอร์ม
+        // ซึ่งอาจเป็น '__new__' และตัวดำเนินการ + จะไม่ยอมให้ค่าใหม่ทับคีย์เดิมที่มีอยู่แล้ว
+        $this->auth->registerTeacher([
+            'username' => $form['username'],
+            'email' => $form['email'],
+            'full_name' => $form['full_name'],
+            'phone' => $form['phone'],
+            'subject_area' => $form['subject_area'],
+            'institution' => $institutionName,
+            'institution_id' => $this->institutions->findOrCreateByName($institutionName),
+            'password' => $password,
+        ], $status);
         $this->auth->log('register.teacher', $form['username'], [
             'institution' => $form['institution'],
             'subject_area' => $form['subject_area'],
