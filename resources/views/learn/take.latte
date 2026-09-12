@@ -114,7 +114,13 @@
     document.getElementById('prevBtn').addEventListener('click', function () { if (cur > 0) { cur--; render(); } });
     document.getElementById('nextBtn').addEventListener('click', function () {
         if (cur < total - 1) { cur++; render(); return; }
-        if (confirm('ส่งคำตอบและจบการทำแบบทดสอบ?')) document.getElementById('submitForm').submit();
+        rvcConfirm({
+            title: 'ส่งคำตอบ',
+            message: 'ส่งคำตอบและจบการทำแบบทดสอบใช่หรือไม่ · เมื่อส่งแล้วจะแก้ไขคำตอบไม่ได้อีก',
+            confirmText: 'ส่งคำตอบ'
+        }).then(function (ok) {
+            if (ok) document.getElementById('submitForm').submit();
+        });
     });
 
     if (limit) {

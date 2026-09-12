@@ -105,11 +105,18 @@
         if (!card) return;
 
         if (e.target.matches('[data-del]')) {
-            if (!confirm('ลบข้อนี้ออกจากร่าง?')) return;
-            fetch(base + '/courses/' + courseId + '/quizzes/' + quizId + '/questions/' + card.dataset.qid + '/delete', {
-                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: '_token=' + encodeURIComponent(token)
-            }).then(function (r) { return r.json(); }).then(function () { card.remove(); updateCounts(); });
+            rvcConfirm({
+                title: 'ลบข้อนี้',
+                message: 'ลบข้อนี้ออกจากร่างแบบทดสอบใช่หรือไม่',
+                confirmText: 'ลบข้อนี้',
+                danger: true
+            }).then(function (ok) {
+                if (!ok) return;
+                fetch(base + '/courses/' + courseId + '/quizzes/' + quizId + '/questions/' + card.dataset.qid + '/delete', {
+                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: '_token=' + encodeURIComponent(token)
+                }).then(function (r) { return r.json(); }).then(function () { card.remove(); updateCounts(); });
+            });
         }
 
         if (e.target.matches('[data-regen]')) {

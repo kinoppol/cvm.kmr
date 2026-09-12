@@ -70,7 +70,8 @@
                     </div>
                     <span class="tag tag-muted">{$s['type']}</span>
                     <form method="post" action="{$base}/courses/{$course['id']}/units/{$unit['id']}/sections/{$s['id']}/delete"
-                          onsubmit="return confirm('ลบส่วนนี้?')" style="display:inline">
+                          data-confirm-title="ลบส่วนนี้" data-confirm-ok="ลบส่วนนี้" data-confirm-danger
+                          data-confirm="ลบส่วนนี้ออกจากหน่วยการเรียนใช่หรือไม่" style="display:inline">
                         <input type="hidden" name="_token" value="{$csrf}">
                         <button type="submit" class="btn btn-sm btn-ghost-danger">ลบ</button>
                     </form>

@@ -126,6 +126,9 @@
     </nav>
 </div>
 
+{include '_partials/confirm.latte'}
+<script src="{$base}/assets/js/confirm.js" defer></script>
+
 {if $role === 'teacher' || $role === 'admin'}
     {include '_partials/ai-chat.latte'}
 {/if}

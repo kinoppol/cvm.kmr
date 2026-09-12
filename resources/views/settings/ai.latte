@@ -52,7 +52,9 @@
                 </div>
                 <div style="display:flex;gap:9px;margin-top:12px">
                     <button type="button" class="btn" style="flex:1" data-open-wizard>แก้การเชื่อมต่อ</button>
-                    <form method="post" action="{$base}/settings/ai/disconnect" onsubmit="return confirm('ยกเลิกการเชื่อม AI ของฉัน?')">
+                    <form method="post" action="{$base}/settings/ai/disconnect"
+                          data-confirm-title="ยกเลิกการเชื่อม AI ของฉัน" data-confirm-ok="ยกเลิกการเชื่อม" data-confirm-danger
+                          data-confirm="ยกเลิกการเชื่อม AI ของคุณ · ระบบจะกลับไปใช้ AI ของส่วนกลางแทน และรหัสที่บันทึกไว้จะถูกลบ">
                         <input type="hidden" name="_token" value="{$csrf}">
                         <button type="submit" class="btn btn-ghost-danger">ยกเลิกการเชื่อม</button>
                     </form>

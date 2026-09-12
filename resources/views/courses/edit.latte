@@ -90,7 +90,8 @@
                 รายวิชาจะหายจากหน้ารายวิชาของฉันและหน้าแรกสาธารณะ แต่บทเรียน แบบทดสอบ และคะแนนของนักเรียนยังอยู่ครบ
             </div>
             <form method="post" action="{$base}/courses/{$course['id']}/archive" style="margin-top:12px"
-                  onsubmit="return confirm('เก็บรายวิชา {$course['name']} เข้าคลังใช่หรือไม่?')">
+                  data-confirm-title="เก็บรายวิชาเข้าคลัง" data-confirm-ok="เก็บเข้าคลัง"
+                  data-confirm="เก็บรายวิชา {$course['name']} เข้าคลังใช่หรือไม่ · บทเรียนและแบบทดสอบยังอยู่ครบ แต่จะไม่แสดงในรายวิชาที่เปิดสอน">
                 <input type="hidden" name="_token" value="{$csrf}">
                 <button type="submit" class="btn btn-ghost-danger">เก็บเข้าคลัง</button>
             </form>

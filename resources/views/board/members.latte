@@ -48,7 +48,8 @@
                         </div>
                         {if $m['user_id'] != $group['created_by']}
                             <form method="post" action="{$base}/board/{$group['id']}/members/{$m['user_id']}/reject"
-                                  onsubmit="return confirm('ลบสมาชิกคนนี้ออก?')">
+                                  data-confirm-title="ลบสมาชิก" data-confirm-ok="ลบออกจากกลุ่ม" data-confirm-danger
+                                  data-confirm="ลบสมาชิกคนนี้ออกจากกลุ่มใช่หรือไม่">
                                 <input type="hidden" name="_token" value="{$csrf}">
                                 <button class="btn btn-sm btn-ghost-danger">นำออก</button>
                             </form>

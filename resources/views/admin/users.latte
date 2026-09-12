@@ -61,7 +61,8 @@
                                     <button type="submit" class="btn btn-sm btn-primary">อนุมัติ</button>
                                 </form>
                                 <form method="post" action="{$base}/admin/users/{$u['id']}/reject" style="display:inline-block"
-                                      onsubmit="return confirm('ปฏิเสธคำขอสมัครของ {$u['full_name']}? บัญชีนี้จะถูกลบทิ้ง')">
+                                      data-confirm-title="ปฏิเสธคำขอสมัคร" data-confirm-ok="ปฏิเสธและลบบัญชี" data-confirm-danger
+                                      data-confirm="ปฏิเสธคำขอสมัครของ {$u['full_name']} ใช่หรือไม่ บัญชีนี้จะถูกลบทิ้งทันที">
                                     <input type="hidden" name="_token" value="{$csrf}">
                                     <button type="submit" class="btn btn-sm btn-ghost-danger">ปฏิเสธ</button>
                                 </form>
@@ -98,19 +99,22 @@
                         <td style="text-align:right;white-space:nowrap">
                             {if $u['role'] !== 'admin' && $u['status'] === 'active' && (int) $u['id'] !== (int) ($user['id'] ?? 0)}
                                 <form method="post" action="{$base}/admin/users/{$u['id']}/impersonate" style="display:inline-block"
-                                      onsubmit="return confirm('เข้าใช้งานระบบในนาม {$u['full_name']}? จะกลับเป็นผู้ดูแลได้เมื่อกด กลับเป็นผู้ดูแล')">
+                                      data-confirm-title="สวมสิทธิ์ผู้ใช้" data-confirm-ok="เข้าใช้งานในนามนี้"
+                                      data-confirm="เข้าใช้งานระบบในนาม {$u['full_name']} · กดปุ่ม “กลับเป็นผู้ดูแล” ที่แถบด้านบนเพื่อกลับมาเป็นบัญชีของคุณ">
                                     <input type="hidden" name="_token" value="{$csrf}">
                                     <button type="submit" class="btn btn-sm">สวมสิทธิ์</button>
                                 </form>
                             {/if}
                             {if $u['role'] === 'teacher' && $u['status'] === 'active'}
                                 <form method="post" action="{$base}/admin/users/{$u['id']}/reset-link" style="display:inline-block"
-                                      onsubmit="return confirm('สร้างลิงก์รีเซ็ตรหัสผ่านของ {$u['full_name']}?')">
+                                      data-confirm-title="สร้างลิงก์รีเซ็ตรหัสผ่าน" data-confirm-ok="สร้างลิงก์"
+                                      data-confirm="สร้างลิงก์ตั้งรหัสผ่านใหม่ให้ {$u['full_name']} · ลิงก์มีอายุ 60 นาที และคุณต้องคัดลอกไปส่งให้เจ้าตัวเอง">
                                     <input type="hidden" name="_token" value="{$csrf}">
                                     <button type="submit" class="btn btn-sm">สร้างลิงก์รีเซ็ต</button>
                                 </form>
                                 <form method="post" action="{$base}/admin/users/{$u['id']}/reset-password" style="display:inline-block"
-                                      onsubmit="return confirm('รีเซ็ตรหัสผ่านของ {$u['full_name']} เป็นรหัสสุ่มใหม่ทันที?')">
+                                      data-confirm-title="รีเซ็ตรหัสผ่านทันที" data-confirm-ok="รีเซ็ตรหัสผ่าน" data-confirm-danger
+                                      data-confirm="ตั้งรหัสผ่านใหม่แบบสุ่มให้ {$u['full_name']} ทันที · รหัสเดิมจะใช้ไม่ได้อีก และระบบจะแสดงรหัสใหม่ให้คุณเพียงครั้งเดียว">
                                     <input type="hidden" name="_token" value="{$csrf}">
                                     <button type="submit" class="btn btn-sm btn-ghost-danger">รีเซ็ตรหัสผ่าน</button>
                                 </form>
