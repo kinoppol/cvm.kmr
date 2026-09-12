@@ -1,8 +1,16 @@
 # ทุก request วิ่งผ่าน public/index.php เสมอ จึงปิดการเติม / ท้าย URL อัตโนมัติของ mod_dir
-# (ไม่งั้นเส้นทางอย่าง /courses จะถูก 301 ไป /courses/ เมื่อบังเอิญมีโฟลเดอร์ชื่อเดียวกันอยู่)
+# (ไม่งั้นเส้นทางอย่าง /courses จะถูก 301 ไป /courses/ เมื่อบังเอิญมีโฟลเดอร์ชื่อเดียวกันอยู่
+#  แล้วชนกับ middleware ที่ตัด / ท้ายออก กลายเป็นวน redirect ไม่รู้จบ)
+#
+# ผลข้างเคียงคือ URL รากของระบบแบบไม่มี / ท้าย (เช่น /web) จะไม่ถูกพาไป /web/ ให้เอง
+# จึงชี้ DirectoryIndex มาที่ public/index.php ไว้ ให้ตัวแอปรับช่วงไปเติม / ให้แทน
 <IfModule mod_dir.c>
     DirectorySlash Off
+    DirectoryIndex public/index.php
 </IfModule>
+
+# ไม่แสดงรายชื่อไฟล์ในโฟลเดอร์เด็ดขาด — กันซอร์สโค้ดรั่วเมื่อ rewrite ไม่ทำงาน
+Options -Indexes
 
 # ส่งทุก request เข้าโฟลเดอร์ public/ เพื่อให้ไฟล์ config และ storage อยู่นอกรากเว็บ
 <IfModule mod_rewrite.c>

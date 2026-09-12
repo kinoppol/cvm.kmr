@@ -105,6 +105,13 @@ $app->add(function (ServerRequestInterface $request, RequestHandlerInterface $ha
     $path = $uri->getPath();
     $target = rtrim($path, '/');
 
+    // รากของระบบแบบไม่มี / ท้าย (เช่น /web) — Slim ลงทะเบียนเส้นทางไว้เป็น /web/ จึงต้องเติม / ให้ก่อน
+    if ($basePath !== '' && $path === $basePath) {
+        $to = $basePath . '/' . ($uri->getQuery() !== '' ? '?' . $uri->getQuery() : '');
+
+        return $app->getResponseFactory()->createResponse(301)->withHeader('Location', $to);
+    }
+
     // หน้าแรกของระบบ (/ หรือ /cvm.kmr/) ปล่อยผ่านตามปกติ
     if ($path === $target || $target === '' || $target === $basePath) {
         return $handler->handle($request);
