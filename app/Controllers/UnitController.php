@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Domain\AssignmentRepository;
 use App\Domain\CourseRepository;
 use App\Domain\UnitRepository;
 use App\Support\Csrf;
@@ -30,6 +31,7 @@ final class UnitController
         private readonly View $view,
         private readonly CourseRepository $courses,
         private readonly UnitRepository $units,
+        private readonly AssignmentRepository $assignments,
     ) {
     }
 
@@ -54,6 +56,7 @@ final class UnitController
             'course' => $course,
             'unit' => $unit,
             'sections' => $sections,
+            'assignments' => $unit ? $this->assignments->forUnit($unitId) : [],
         ]);
     }
 

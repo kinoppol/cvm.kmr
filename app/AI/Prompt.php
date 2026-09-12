@@ -31,8 +31,40 @@ final class Prompt
             'quiz' => self::quiz($spec),
             'lesson_plan' => self::lessonPlan($spec),
             'unit_outline' => self::unitOutline($spec),
+            'assignment' => self::assignment($spec),
             default => $userPrompt,
         };
+    }
+
+    /**
+     * ร่างใบงานของหน่วยการเรียนหนึ่งหน่วย
+     *
+     * @param array<string,mixed> $spec
+     */
+    private static function assignment(array $spec): string
+    {
+        $unit = (string) ($spec['unit'] ?? '');
+        $keyContent = trim((string) ($spec['key_content'] ?? '')) ?: '(ไม่ได้ระบุ ให้อนุมานจากชื่อหน่วย)';
+        $score = (float) ($spec['max_score'] ?? 10);
+        $note = trim((string) ($spec['note'] ?? ''));
+        $noteText = $note === '' ? '' : "\n\nสิ่งที่ครูสั่งเพิ่ม: {$note}";
+
+        return <<<TXT
+            ออกแบบใบงานภาษาไทยสำหรับรายวิชา {$spec['course_code']} {$spec['course_name']}
+
+            หน่วยการเรียน: {$unit}
+            สาระสำคัญของหน่วย:
+            {$keyContent}
+
+            คะแนนเต็มของใบงาน: {$score} คะแนน{$noteText}
+
+            ข้อกำหนดของคำตอบ — สำคัญมาก ห้ามผิดรูปแบบ:
+            1. ตอบเป็น JSON อ็อบเจกต์เดียว ห้ามครอบด้วย ``` ห้ามมีคำอธิบายนอก JSON
+            2. ใช้รูปแบบนี้
+            {"title":"ชื่อใบงาน","objective":"จุดประสงค์ของใบงาน 1-2 ประโยค","steps":["ขั้นตอนที่ต้องทำ ข้อละหนึ่งรายการ"],"deliverable":"สิ่งที่ต้องส่ง","criteria":[{"item":"เกณฑ์การให้คะแนน","score":5}]}
+            3. ให้ steps มี 3-6 ข้อ สั่งงานเป็นรูปธรรม ทำได้จริงในบริบทงานอาชีพ ไม่ใช่คำถามท่องจำ
+            4. คะแนนใน criteria ทุกข้อรวมกันต้องเท่ากับ {$score} พอดี
+            TXT;
     }
 
     /**

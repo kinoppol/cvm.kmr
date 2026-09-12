@@ -14,6 +14,7 @@ use App\Controllers\Admin\MigrationController;
 use App\Controllers\Admin\UsersController as AdminUsersController;
 use App\Controllers\AiChatController;
 use App\Controllers\AppearanceController;
+use App\Controllers\AssignmentController;
 use App\Controllers\AuthController;
 use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
@@ -91,6 +92,15 @@ return static function (App $app): void {
             $t->get('/{courseId:[0-9]+}/units/new', [UnitController::class, 'edit']);
             $t->get('/{courseId:[0-9]+}/units/{id:[0-9]+}/edit', [UnitController::class, 'edit']);
             $t->post('/{courseId:[0-9]+}/units[/{id:[0-9]+}]', [UnitController::class, 'save']);
+            // ใบงานของหน่วยการเรียน — เขียนเองหรือให้ผู้ช่วย AI ร่างให้แล้วแก้ต่อ
+            $t->get('/{courseId:[0-9]+}/units/{unitId:[0-9]+}/assignments/new', [AssignmentController::class, 'edit']);
+            $t->post('/{courseId:[0-9]+}/units/{unitId:[0-9]+}/assignments', [AssignmentController::class, 'save']);
+            $t->post('/{courseId:[0-9]+}/units/{unitId:[0-9]+}/assignments/draft', [AssignmentController::class, 'draft']);
+            $t->get('/{courseId:[0-9]+}/units/{unitId:[0-9]+}/assignments/{id:[0-9]+}/edit', [AssignmentController::class, 'edit']);
+            $t->post('/{courseId:[0-9]+}/units/{unitId:[0-9]+}/assignments/{id:[0-9]+}', [AssignmentController::class, 'save']);
+            $t->post('/{courseId:[0-9]+}/units/{unitId:[0-9]+}/assignments/{id:[0-9]+}/draft', [AssignmentController::class, 'draft']);
+            $t->post('/{courseId:[0-9]+}/units/{unitId:[0-9]+}/assignments/{id:[0-9]+}/delete', [AssignmentController::class, 'delete']);
+
             $t->post('/{courseId:[0-9]+}/units/{id:[0-9]+}/sections', [UnitController::class, 'addSection']);
             $t->post('/{courseId:[0-9]+}/units/{id:[0-9]+}/sections/{sectionId:[0-9]+}/delete', [UnitController::class, 'deleteSection']);
 
