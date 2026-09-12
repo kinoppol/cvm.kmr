@@ -6,6 +6,7 @@ use App\Auth\AuthMiddleware;
 use App\Auth\RoleMiddleware;
 use App\Controllers\Admin\AiController as AdminAiController;
 use App\Controllers\Admin\DemoController;
+use App\Controllers\Admin\CoursesController as AdminCoursesController;
 use App\Controllers\Admin\GeneralController;
 use App\Controllers\Admin\LogsController;
 use App\Controllers\Admin\MigrationController;
@@ -171,6 +172,8 @@ return static function (App $app): void {
             $admin->post('/users/settings', [AdminUsersController::class, 'saveSettings']);
             $admin->post('/users/{id:[0-9]+}/reset-password', [AdminUsersController::class, 'resetPassword']);
             $admin->post('/users/{id:[0-9]+}/reset-link', [AdminUsersController::class, 'resetLink']);
+
+            $admin->get('/courses', [AdminCoursesController::class, 'index'])->setName('admin.courses');
 
             $admin->get('/logs', [LogsController::class, 'index'])->setName('admin.logs');
             $admin->get('/logs/download', [LogsController::class, 'download']);

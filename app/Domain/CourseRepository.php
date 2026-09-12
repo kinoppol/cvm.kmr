@@ -81,13 +81,16 @@ final class CourseRepository
         $this->db->update('courses', ['status' => 'archived'], ['id' => $id]);
     }
 
-    /** รหัสวิชาซ้ำกับรายวิชาอื่นในภาคเรียน/กลุ่มเรียนเดียวกันหรือไม่ */
-    public function codeTaken(string $code, ?int $termId, ?int $classroomId, ?int $exceptId = null): bool
+    /**
+     * ครูคนนี้มีรายวิชารหัสนี้ในภาคเรียน/กลุ่มเรียนเดียวกันอยู่แล้วหรือไม่
+     * ครูคนอื่นถือรหัสเดียวกันได้ เพราะรายวิชาเดียวกันมีหลายคนสอน และต่างคนต่างใช้ของตัวเอง
+     */
+    public function codeTaken(int $teacherId, string $code, ?int $termId, ?int $classroomId, ?int $exceptId = null): bool
     {
         return $this->db->int(
             'SELECT COUNT(*) FROM {courses}
-             WHERE code = ? AND term_id <=> ? AND classroom_id <=> ? AND id <> ?',
-            [$code, $termId, $classroomId, $exceptId ?? 0]
+             WHERE teacher_id = ? AND code = ? AND term_id <=> ? AND classroom_id <=> ? AND id <> ?',
+            [$teacherId, $code, $termId, $classroomId, $exceptId ?? 0]
         ) > 0;
     }
 
@@ -142,6 +145,60 @@ final class CourseRepository
              LEFT JOIN {classrooms} cr ON cr.id = c.classroom_id
              WHERE c.status = \'active\'
              ORDER BY u.full_name, c.code'
+        );
+    }
+
+    /**
+     * รายวิชาทั้งระบบสำหรับผู้ดูแล — รวมวิชาที่เก็บเข้าคลังแล้ว และบอกว่าใครเป็นเจ้าของ
+     * ครูหลายคนถือรหัสวิชาเดียวกันได้ จึงเรียงตามรหัสเพื่อให้เห็นวิชาเดียวกันของแต่ละคนติดกัน
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function allForAdmin(string $query = '', ?int $teacherId = null, string $status = ''): array
+    {
+        $where = [];
+        $params = [];
+
+        if ($query !== '') {
+            $where[] = '(c.code LIKE ? OR c.name LIKE ? OR u.full_name LIKE ?)';
+            $like = '%' . $query . '%';
+            array_push($params, $like, $like, $like);
+        }
+        if ($teacherId !== null) {
+            $where[] = 'c.teacher_id = ?';
+            $params[] = $teacherId;
+        }
+        if ($status !== '') {
+            $where[] = 'c.status = ?';
+            $params[] = $status;
+        }
+
+        return $this->db->all(
+            'SELECT c.id, c.code, c.name, c.credits, c.status, c.show_on_landing,
+                    u.id AS teacher_id, u.full_name AS teacher_name,
+                    cr.name AS classroom_name, t.name AS term_name,
+                    (SELECT COUNT(*) FROM {enrollments} e WHERE e.course_id = c.id AND e.status = \'active\') AS student_count,
+                    (SELECT COUNT(*) FROM {units} un WHERE un.course_id = c.id) AS unit_count
+             FROM {courses} c
+             LEFT JOIN {users} u ON u.id = c.teacher_id
+             LEFT JOIN {classrooms} cr ON cr.id = c.classroom_id
+             LEFT JOIN {academic_terms} t ON t.id = c.term_id
+             ' . ($where === [] ? '' : 'WHERE ' . implode(' AND ', $where)) . '
+             ORDER BY c.code, u.full_name
+             LIMIT 500',
+            $params
+        );
+    }
+
+    /** @return list<array<string,mixed>> ครูที่มีรายวิชาในระบบ สำหรับตัวกรองของผู้ดูแล */
+    public function teachersWithCourses(): array
+    {
+        return $this->db->all(
+            'SELECT u.id, u.full_name, COUNT(c.id) AS course_count
+             FROM {users} u
+             JOIN {courses} c ON c.teacher_id = u.id
+             GROUP BY u.id, u.full_name
+             ORDER BY u.full_name'
         );
     }
 

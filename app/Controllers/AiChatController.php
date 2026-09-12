@@ -285,10 +285,10 @@ final class AiChatController
         }
 
         $termId = $this->courses->currentTermId();
-        if ($this->courses->codeTaken($code, $termId, null, null)) {
+        if ($this->courses->codeTaken((int) $user['id'], $code, $termId, null, null)) {
             return $this->json($response, [
                 'ok' => false,
-                'message' => 'มีรายวิชารหัส ' . $code . ' ในภาคเรียนนี้อยู่แล้ว',
+                'message' => 'คุณมีรายวิชารหัส ' . $code . ' ในภาคเรียนนี้อยู่แล้ว',
             ], 409);
         }
 

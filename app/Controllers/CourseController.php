@@ -109,8 +109,8 @@ final class CourseController
             return $this->back($response, $course, true);
         }
 
-        if ($this->courses->codeTaken($code, $termId, $classroomId, $course['id'] ?? null)) {
-            Flash::error('มีรายวิชารหัส ' . $code . ' ในภาคเรียนและกลุ่มเรียนนี้อยู่แล้ว');
+        if ($this->courses->codeTaken((int) $user['id'], $code, $termId, $classroomId, $course['id'] ?? null)) {
+            Flash::error('คุณมีรายวิชารหัส ' . $code . ' ในภาคเรียนและกลุ่มเรียนนี้อยู่แล้ว');
 
             return $this->back($response, $course, true);
         }
