@@ -21,6 +21,7 @@ use App\Controllers\ImpersonationController;
 use App\Controllers\LandingController;
 use App\Controllers\BoardController;
 use App\Controllers\UnitController;
+use App\Controllers\UnitOutlineController;
 use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
 use App\Controllers\PublicCourseController;
@@ -82,6 +83,11 @@ return static function (App $app): void {
             $t->get('/{id:[0-9]+}/edit', [CourseController::class, 'edit']);
             $t->post('/{id:[0-9]+}', [CourseController::class, 'save']);
             $t->post('/{id:[0-9]+}/archive', [CourseController::class, 'archive']);
+            // ให้ AI ออกแบบรายชื่อหน่วยการเรียนให้ครอบคลุมคำอธิบายรายวิชา (ครูเลือกก่อนบันทึก)
+            $t->get('/{courseId:[0-9]+}/units/design', [UnitOutlineController::class, 'form']);
+            $t->post('/{courseId:[0-9]+}/units/design', [UnitOutlineController::class, 'generate']);
+            $t->post('/{courseId:[0-9]+}/units/design/save', [UnitOutlineController::class, 'save']);
+
             $t->get('/{courseId:[0-9]+}/units/new', [UnitController::class, 'edit']);
             $t->get('/{courseId:[0-9]+}/units/{id:[0-9]+}/edit', [UnitController::class, 'edit']);
             $t->post('/{courseId:[0-9]+}/units[/{id:[0-9]+}]', [UnitController::class, 'save']);

@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Domain\CourseRepository;
 use App\Domain\EnrollmentRepository;
+use App\Domain\QuizRepository;
 use App\Domain\UnitRepository;
 use App\Support\Csrf;
 use App\Support\Db;
@@ -20,12 +21,13 @@ use Slim\Exception\HttpNotFoundException;
 
 final class CourseController
 {
-    private const TABS = ['units', 'students', 'scores'];
+    private const TABS = ['units', 'quizzes', 'students', 'scores'];
 
     public function __construct(
         private readonly View $view,
         private readonly CourseRepository $courses,
         private readonly UnitRepository $units,
+        private readonly QuizRepository $quizzes,
         private readonly EnrollmentRepository $enrollments,
         private readonly Db $db,
     ) {
@@ -191,6 +193,7 @@ final class CourseController
 
         $data += match ($tab) {
             'units'    => ['units' => $this->decorateUnits($this->units->forCourse($course['id']))],
+            'quizzes'  => ['quizzes' => $this->quizzes->forCourse((int) $course['id'])],
             'students' => ['students' => $this->enrollments->studentsInCourse($course['id'])],
             'scores'   => $this->scoreBoard($course['id']),
             default    => [],

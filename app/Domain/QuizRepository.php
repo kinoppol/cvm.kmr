@@ -15,14 +15,15 @@ final class QuizRepository
     {
     }
 
-    /** @return list<array<string,mixed>> */
+    /** @return list<array<string,mixed>> แบบทดสอบทุกฉบับของรายวิชา รวมฉบับร่างที่ยังไม่ได้เผยแพร่ */
     public function forCourse(int $courseId): array
     {
         return $this->db->all(
-            'SELECT q.*,
+            'SELECT q.*, u.title AS unit_title,
                     (SELECT COUNT(*) FROM {quiz_questions} qq WHERE qq.quiz_id = q.id) AS question_count,
                     (SELECT COUNT(DISTINCT a.student_id) FROM {quiz_attempts} a WHERE a.quiz_id = q.id AND a.status <> \'in_progress\') AS submitted_count
              FROM {quizzes} q
+             LEFT JOIN {units} u ON u.id = q.unit_id
              WHERE q.course_id = ?
              ORDER BY q.created_at DESC',
             [$courseId]

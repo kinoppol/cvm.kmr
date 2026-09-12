@@ -30,8 +30,43 @@ final class Prompt
             'chat' => (string) ($spec['message'] ?? ''),
             'quiz' => self::quiz($spec),
             'lesson_plan' => self::lessonPlan($spec),
+            'unit_outline' => self::unitOutline($spec),
             default => $userPrompt,
         };
+    }
+
+    /**
+     * ออกแบบรายชื่อหน่วยการเรียนของทั้งรายวิชาให้ครอบคลุมคำอธิบายรายวิชา
+     *
+     * @param array<string,mixed> $spec
+     */
+    private static function unitOutline(array $spec): string
+    {
+        $count = max(2, min(20, (int) ($spec['count'] ?? 8)));
+        $description = trim((string) ($spec['description'] ?? '')) ?: '(ไม่ได้ระบุ ให้อนุมานจากชื่อวิชา)';
+        $existing = (array) ($spec['existing'] ?? []);
+        $existingText = $existing === []
+            ? 'ยังไม่มีหน่วยการเรียนเดิม'
+            : "ห้ามซ้ำกับหน่วยที่มีอยู่แล้วต่อไปนี้:\n- " . implode("\n- ", $existing);
+        $note = trim((string) ($spec['note'] ?? ''));
+        $noteText = $note === '' ? '' : "\n\nสิ่งที่ครูสั่งเพิ่ม: {$note}";
+
+        return <<<TXT
+            ออกแบบรายชื่อหน่วยการเรียนของรายวิชา {$spec['course_code']} {$spec['course_name']} จำนวน {$count} หน่วย
+
+            คำอธิบายรายวิชา:
+            {$description}
+
+            {$existingText}{$noteText}
+
+            ข้อกำหนดของคำตอบ — สำคัญมาก ห้ามผิดรูปแบบ:
+            1. ตอบเป็น NDJSON เท่านั้น หนึ่งหน่วยต่อหนึ่งบรรทัด ห้ามครอบด้วย ``` ห้ามมีคำอธิบายนอก JSON
+            2. แต่ละบรรทัดใช้รูปแบบนี้
+            {"no":1,"title":"ชื่อหน่วยการเรียน","key_content":"สาระสำคัญ 2-3 ประโยค","objectives":"จุดประสงค์การเรียนรู้ ข้อละบรรทัด","competencies":"สมรรถนะประจำหน่วย","hours":6}
+            3. เรียงหน่วยจากพื้นฐานไปสู่การประยุกต์ใช้ และให้ทุกหน่วยรวมกันครอบคลุมคำอธิบายรายวิชาข้างต้นครบถ้วน
+            4. ใช้ภาษาไทยและบริบทงานอาชีพจริง ไม่ตั้งชื่อหน่วยกว้างลอย ๆ
+            5. เมื่อครบ {$count} หน่วย ให้ปิดท้ายด้วยบรรทัด {"done":true,"total":{$count}}
+            TXT;
     }
 
     /** @param array<string,mixed> $spec */
