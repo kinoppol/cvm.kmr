@@ -9,7 +9,7 @@
         <div class="sub">ตรวจสอบและสั่งปรับปรุงโครงสร้างตารางของระบบ (migration) โดยไม่ต้องใช้คำสั่งจากหน้าจอดำ</div>
     </div>
     <div class="actions">
-        <form method="post" action="{$base}/admin/migrations/run">
+        <form method="post" action="{$base}/admin/migrations/run" data-busy="กำลังรัน migration…">
             <input type="hidden" name="_token" value="{$csrf}">
             <button type="submit" class="btn btn-primary" n:attr="disabled: !$status['pending']">
                 รันรายการที่ค้าง{if $status['pending']} ({count($status['pending'])}){/if}

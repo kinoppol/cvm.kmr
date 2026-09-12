@@ -54,7 +54,7 @@
         </div>
     {/if}
 
-    <form method="post" action="{$base}/admin/demo/seed">
+    <form method="post" action="{$base}/admin/demo/seed" data-busy="กำลังสร้างข้อมูลตัวอย่าง…">
         <input type="hidden" name="_token" value="{$csrf}">
         <div class="field">
             <label for="confirm">พิมพ์คำว่า <strong>ใส่ข้อมูลตัวอย่าง</strong> เพื่อยืนยัน</label>

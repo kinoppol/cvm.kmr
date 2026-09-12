@@ -112,7 +112,7 @@
         </div>
         <div class="modal-progress"><span id="wizBar" style="width:33%"></span></div>
 
-        <form method="post" action="{$base}/settings/ai/connect" class="modal-body" id="wizardForm">
+        <form method="post" action="{$base}/settings/ai/connect" class="modal-body" id="wizardForm" data-busy="กำลังตรวจสอบรหัสกับผู้ให้บริการ…">
             <input type="hidden" name="_token" value="{$csrf}">
             <input type="hidden" name="provider" id="wizProvider" value="google">
 

@@ -19,6 +19,7 @@ use App\Support\Url;
 use App\Support\View;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -42,6 +43,7 @@ final class UnitOutlineController
         private readonly AiRouter $router,
         private readonly SettingsRepository $settings,
         private readonly Auth $auth,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -101,14 +103,23 @@ final class UnitOutlineController
         $quality = $this->settings->userQualityPref((int) $user['id']);
         set_time_limit(0);
 
+        // ต้องมีข้อความกำกับระบบเสมอ — ผู้ให้บริการบางรายปฏิเสธคำขอที่ system prompt ว่างเปล่า
+        $system = 'คุณเป็นผู้ช่วยครูอาชีวศึกษา ออกแบบโครงสร้างหน่วยการเรียนเป็นภาษาไทย '
+            . 'ตอบกลับเป็น NDJSON หนึ่งหน่วยต่อหนึ่งบรรทัด';
+
         try {
             $route = $this->router->route((int) $user['id'], $quality, false, real: true);
-            $units = $this->collect($route->provider->stream('', (string) $spec, $quality), $count);
+            $units = $this->collect($route->provider->stream($system, (string) $spec, $quality), $count);
         } catch (AiUnavailableException $e) {
             Flash::error($e->getMessage());
 
             return $this->back($response, $course);
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            // บันทึกสาเหตุจริงไว้ให้ผู้ดูแลตามดูที่ /admin/logs ส่วนครูเห็นข้อความที่อ่านรู้เรื่อง
+            $this->logger->error('ร่างรายชื่อหน่วยการเรียนไม่สำเร็จ: ' . $e->getMessage(), [
+                'course_id' => (int) $course['id'],
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
             Flash::error('ผู้ช่วยร่างรายการหน่วยไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
 
             return $this->back($response, $course);

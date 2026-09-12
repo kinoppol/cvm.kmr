@@ -27,7 +27,8 @@
         {/if}
     </div>
 
-    <form method="post" action="{$base}/courses/{$course['id']}/units/design" class="card">
+    <form method="post" action="{$base}/courses/{$course['id']}/units/design" class="card"
+          data-busy="กำลังร่างรายชื่อหน่วย…">
         <input type="hidden" name="_token" value="{$csrf}">
 
         <div class="field">
@@ -42,7 +43,15 @@
         </div>
 
         <button type="submit" class="btn btn-primary">ให้ AI ร่างรายชื่อหน่วย</button>
-        <span class="hint" style="margin-left:10px">ใช้เวลาสักครู่ กรุณาอย่าปิดหน้านี้</span>
+        <span class="hint" style="margin-left:10px">ปกติใช้เวลา 15–60 วินาที</span>
+
+        <div class="busy-note" data-busy-note hidden>
+            <span class="spinner"></span>
+            <span>
+                ผู้ช่วยกำลังอ่านคำอธิบายรายวิชาแล้วร่างรายชื่อหน่วยให้<span class="busy-dots"></span><br>
+                <span class="hint">อย่าปิดหน้านี้ · ผลลัพธ์จะขึ้นให้เลือกด้านล่างเมื่อร่างเสร็จ</span>
+            </span>
+        </div>
     </form>
 
     {if $proposed}

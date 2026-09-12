@@ -76,3 +76,29 @@
         });
     }, true);
 })();
+
+/* ---------- สถานะกำลังดำเนินการ ----------
+   ใส่ data-busy="ข้อความ" ที่ <form> ที่ใช้เวลานาน (เรียก AI, ทดสอบการเชื่อมต่อ, นำเข้าไฟล์)
+   ปุ่มจะกลายเป็นวงกลมหมุนพร้อมข้อความ กันกดซ้ำ และบอกผู้ใช้ว่าระบบกำลังทำงานอยู่ */
+(function () {
+    'use strict';
+
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (!form.getAttribute || !form.hasAttribute('data-busy')) { return; }
+
+        /* ฟอร์มที่ต้องยืนยันก่อน จะยังไม่ถูกส่งจริงในรอบนี้ */
+        if (form.hasAttribute('data-confirm') && form.dataset.confirmed !== '1') { return; }
+        if (event.defaultPrevented) { return; }
+
+        var button = form.querySelector('button[type="submit"], button:not([type])');
+        if (!button || button.dataset.busyOn === '1') { return; }
+
+        button.dataset.busyOn = '1';
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner"></span>' + (form.getAttribute('data-busy') || 'กำลังดำเนินการ…');
+
+        var note = form.querySelector('[data-busy-note]');
+        if (note) { note.hidden = false; }
+    });
+})();

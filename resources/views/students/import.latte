@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <form method="post" action="{$base}/students/import" enctype="multipart/form-data">
+    <form method="post" action="{$base}/students/import" enctype="multipart/form-data" data-busy="กำลังนำเข้ารายชื่อ…">
         <input type="hidden" name="_token" value="{$csrf}">
         <div class="field">
             <label for="file">ไฟล์ Excel (.xlsx)</label>
