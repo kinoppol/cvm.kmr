@@ -3,10 +3,10 @@
 #  แล้วชนกับ middleware ที่ตัด / ท้ายออก กลายเป็นวน redirect ไม่รู้จบ)
 #
 # ผลข้างเคียงคือ URL รากของระบบแบบไม่มี / ท้าย (เช่น /web) จะไม่ถูกพาไป /web/ ให้เอง
-# จึงชี้ DirectoryIndex มาที่ public/index.php ไว้ ให้ตัวแอปรับช่วงไปเติม / ให้แทน
+# จึงมี index.php บาง ๆ ที่รากคอยรับแล้วส่งต่อให้ตัวแอป 301 ไปยัง URL ที่มี / ท้ายเอง
 <IfModule mod_dir.c>
     DirectorySlash Off
-    DirectoryIndex public/index.php
+    DirectoryIndex index.php
 </IfModule>
 
 # ไม่แสดงรายชื่อไฟล์ในโฟลเดอร์เด็ดขาด — กันซอร์สโค้ดรั่วเมื่อ rewrite ไม่ทำงาน
