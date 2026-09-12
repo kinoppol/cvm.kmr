@@ -117,6 +117,14 @@ $app->add(function (ServerRequestInterface $request, RequestHandlerInterface $ha
         return $handler->handle($request);
     }
 
+    // URL ที่ตรงกับโฟลเดอร์จริงในโปรเจกต์ (เช่น /web/app/) ห้ามตัด / ท้าย เพราะ mod_dir จะเติมกลับมาให้
+    // ทุกครั้งจนวน redirect ไม่จบ — ปล่อยให้ Slim ตอบ "ไม่พบหน้าที่ต้องการ" ไปตามปกติ
+    $root = dirname(__DIR__);
+    $inside = realpath($root . '/' . trim(substr($target, strlen($basePath)), '/'));
+    if ($inside !== false && is_dir($inside) && str_starts_with($inside, $root)) {
+        return $handler->handle($request);
+    }
+
     if ($uri->getQuery() !== '') {
         $target .= '?' . $uri->getQuery();
     }
