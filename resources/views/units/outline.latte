@@ -69,12 +69,24 @@
             </div>
 
             <div class="form-actions" style="margin-top:16px">
-                <button type="button" class="btn btn-sm" onclick="document.querySelectorAll('[name=&quot;pick[]&quot;]').forEach(function(c){c.checked=true})">เลือกทั้งหมด</button>
-                <button type="button" class="btn btn-sm" onclick="document.querySelectorAll('[name=&quot;pick[]&quot;]').forEach(function(c){c.checked=false})">ไม่เลือกเลย</button>
+                <button type="button" class="btn btn-sm" data-pick="all">เลือกทั้งหมด</button>
+                <button type="button" class="btn btn-sm" data-pick="none">ไม่เลือกเลย</button>
                 <div class="spacer"></div>
                 <button type="submit" class="btn btn-primary">บันทึกเป็นหน่วยฉบับร่าง</button>
             </div>
         </form>
+
+        {* เว้นวรรคหลัง { ทุกจุด เพราะ Latte อ่าน { ที่ติดตัวอักษรเป็นแท็กของตัวเอง *}
+        <script>
+            document.querySelectorAll('[data-pick]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var on = btn.dataset.pick === 'all';
+                    btn.closest('form').querySelectorAll('input[type="checkbox"]').forEach(function (box) {
+                        box.checked = on;
+                    });
+                });
+            });
+        </script>
     {/if}
 </div>
 {/block}

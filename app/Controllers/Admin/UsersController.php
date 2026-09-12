@@ -23,6 +23,9 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 final class UsersController
 {
+    private const PER_PAGE = 50;
+    private const STATUSES = ['active', 'pending', 'suspended'];
+
     public function __construct(
         private readonly View $view,
         private readonly Db $db,
@@ -61,16 +64,40 @@ final class UsersController
             ] + $this->adminContext($request));
         }
 
+        $query = $request->getQueryParams();
         $roles = [Roles::ADMIN, Roles::SUPERVISOR, Roles::TEACHER, Roles::STUDENT];
-        $where = in_array($role, $roles, true) ? 'WHERE role = ?' : '';
-        $params = $where ? [$role] : [];
+        $search = trim((string) ($query['q'] ?? ''));
+        $status = in_array($query['status'] ?? '', self::STATUSES, true) ? (string) $query['status'] : '';
+
+        $where = [];
+        $params = [];
+
+        if (in_array($role, $roles, true)) {
+            $where[] = 'role = ?';
+            $params[] = $role;
+        }
+        if ($status !== '') {
+            $where[] = 'status = ?';
+            $params[] = $status;
+        }
+        if ($search !== '') {
+            $where[] = '(username LIKE ? OR full_name LIKE ? OR email LIKE ?)';
+            $like = '%' . $search . '%';
+            array_push($params, $like, $like, $like);
+        }
+        $clause = $where === [] ? '' : 'WHERE ' . implode(' AND ', $where);
+
+        $total = $this->db->int("SELECT COUNT(*) FROM {users} $clause", $params);
+        $pages = max(1, (int) ceil($total / self::PER_PAGE));
+        $page = min($pages, max(1, (int) ($query['page'] ?? 1)));
+        $offset = ($page - 1) * self::PER_PAGE;
 
         $users = $this->db->all(
             "SELECT id, username, full_name, email, role, status, last_login_at
-             FROM {users} $where
+             FROM {users} $clause
              ORDER BY FIELD(status, 'pending', 'active', 'suspended'),
                       FIELD(role, 'admin', 'supervisor', 'teacher', 'student'), username
-             LIMIT 500",
+             LIMIT " . self::PER_PAGE . " OFFSET $offset",
             $params
         );
         foreach ($users as $i => $u) {
@@ -86,6 +113,17 @@ final class UsersController
             'filter' => $role,
             'pendingCount' => $pendingCount,
             'requireApproval' => $this->settings->bool('registration_require_approval', true),
+            'search' => $search,
+            'status' => $status,
+            'total' => $total,
+            'pageNo' => $page,
+            'pages' => $pages,
+            'perPage' => self::PER_PAGE,
+            'queryString' => http_build_query(array_filter([
+                'role' => $role,
+                'status' => $status,
+                'q' => $search,
+            ], static fn (string $v): bool => $v !== '')),
         ] + $this->adminContext($request));
     }
 

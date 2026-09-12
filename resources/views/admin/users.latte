@@ -80,6 +80,29 @@
         </div>
     {/if}
 {else}
+    <form method="get" action="{$base}/admin/users" class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        {if $filter}<input type="hidden" name="role" value="{$filter}">{/if}
+        <input type="text" name="q" class="input" style="width:250px" value="{$search}" placeholder="ค้นชื่อผู้ใช้ ชื่อ-สกุล หรืออีเมล">
+        <select name="status" class="input" style="width:170px">
+            <option value="">— ทุกสถานะ —</option>
+            <option value="active" n:attr="selected: $status === 'active'">ใช้งาน</option>
+            <option value="pending" n:attr="selected: $status === 'pending'">รออนุมัติ</option>
+            <option value="suspended" n:attr="selected: $status === 'suspended'">ระงับ</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary">กรอง</button>
+        {if $search || $status}
+            <a href="{$base}/admin/users{if $filter}?role={$filter}{/if}" class="btn btn-sm">ล้างตัวกรอง</a>
+        {/if}
+        <div class="spacer"></div>
+        <span class="hint">
+            {if $total > 0}
+                แสดง {($pageNo - 1) * $perPage + 1}–{min($pageNo * $perPage, $total)} จาก {$total} บัญชี
+            {else}
+                ไม่พบบัญชีตามเงื่อนไขนี้
+            {/if}
+        </span>
+    </form>
+
     <div class="card">
         <div class="table-scroll">
             <table class="data">
@@ -137,9 +160,31 @@
                         </td>
                     </tr>
                 {/foreach}
+                {if !$users}
+                    <tr><td colspan="6" class="text-muted" style="text-align:center;padding:26px">ไม่พบบัญชีตามเงื่อนไขนี้</td></tr>
+                {/if}
                 </tbody>
             </table>
         </div>
     </div>
+
+    {if $pages > 1}
+        {var $qs = $queryString ? $queryString . '&' : ''}
+        <nav class="pager">
+            {if $pageNo > 1}
+                <a class="btn btn-sm" href="{$base}/admin/users?{$qs}page={$pageNo - 1}">← ก่อนหน้า</a>
+            {/if}
+
+            {foreach range(max(1, $pageNo - 2), min($pages, $pageNo + 2)) as $p}
+                <a href="{$base}/admin/users?{$qs}page={$p}" n:class="btn, btn-sm, $p === $pageNo ? btn-primary">{$p}</a>
+            {/foreach}
+
+            {if $pageNo < $pages}
+                <a class="btn btn-sm" href="{$base}/admin/users?{$qs}page={$pageNo + 1}">ถัดไป →</a>
+            {/if}
+
+            <span class="hint">หน้า {$pageNo} จาก {$pages}</span>
+        </nav>
+    {/if}
 {/if}
 {/block}
