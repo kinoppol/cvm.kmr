@@ -11,6 +11,7 @@ use App\Auth\Auth;
 use App\Domain\AiRepository;
 use App\Domain\CourseRepository;
 use App\Domain\SettingsRepository;
+use App\Domain\UnitRepository;
 use App\Support\Csrf;
 use App\Support\TextExtract;
 use App\Support\Url;
@@ -35,6 +36,7 @@ final class AiChatController
         private readonly Auth $auth,
         private readonly SettingsRepository $settings,
         private readonly CourseRepository $courses,
+        private readonly UnitRepository $units,
     ) {
     }
 
@@ -147,7 +149,7 @@ final class AiChatController
                     if (str_starts_with($probe, '{')) {
                         $mode = 'action';
                         $rawAction = $probe;
-                        $send('working', ['message' => 'กำลังเตรียมรายวิชาให้…']);
+                        $send('working', ['message' => 'กำลังร่างข้อมูลให้…']);
 
                         continue;
                     }
@@ -161,7 +163,7 @@ final class AiChatController
             }
 
             if ($mode === 'action') {
-                $action = $this->parseAction($rawAction, $isTeacher);
+                $action = $this->parseAction($rawAction, $isTeacher, (int) $user['id']);
                 if ($action !== null) {
                     $send('action', $action);
                 } else {
@@ -316,6 +318,68 @@ final class AiChatController
     }
 
     /**
+     * สร้างหน่วยการเรียนพร้อมเนื้อหาที่ผู้ช่วยร่างไว้ — บันทึกเป็นฉบับร่างเสมอ
+     * ครูตรวจแก้ในหน้าแก้ไขหน่วยแล้วค่อยกดเผยแพร่เอง
+     */
+    public function createUnit(Request $request, Response $response): Response
+    {
+        $user = $request->getAttribute('user');
+        $data = (array) $request->getParsedBody();
+
+        if (!Csrf::check($data['_token'] ?? null)) {
+            return $this->json($response, ['ok' => false, 'message' => 'เซสชันหมดอายุ'], 419);
+        }
+
+        $courseId = (int) ($data['course_id'] ?? 0);
+        $title = trim((string) ($data['title'] ?? ''));
+
+        if ($title === '' || $courseId <= 0) {
+            return $this->json($response, ['ok' => false, 'message' => 'ยังไม่ได้เลือกรายวิชาหรือยังไม่มีชื่อหน่วย'], 422);
+        }
+
+        if (!$this->courses->ownedByTeacher($courseId, (int) $user['id'])) {
+            return $this->json($response, ['ok' => false, 'message' => 'ไม่พบรายวิชานี้ในรายวิชาของคุณ'], 403);
+        }
+
+        $sections = json_decode((string) ($data['sections'] ?? '[]'), true);
+        $sections = is_array($sections) ? $this->cleanSections($sections) : [];
+
+        $unitId = $this->units->create([
+            'course_id' => $courseId,
+            'title' => mb_substr($title, 0, 191),
+            'key_content' => trim((string) ($data['key_content'] ?? '')) ?: null,
+            'objectives' => trim((string) ($data['objectives'] ?? '')) ?: null,
+            'competencies' => trim((string) ($data['competencies'] ?? '')) ?: null,
+            'sort_order' => $this->units->nextSortOrder($courseId),
+            'source' => 'ai',
+            'review_status' => 'draft',
+            'created_by' => (int) $user['id'],
+        ]);
+
+        foreach ($sections as $i => $section) {
+            $this->units->createSection([
+                'unit_id' => $unitId,
+                'type' => 'text',
+                'title' => $section['title'],
+                'content' => $section['content'],
+                'sort_order' => $i + 1,
+            ]);
+        }
+
+        $this->auth->log('ai.chat.create_unit', 'unit#' . $unitId, [
+            'course_id' => $courseId,
+            'sections' => count($sections),
+        ]);
+
+        return $this->json($response, [
+            'ok' => true,
+            'id' => $unitId,
+            'url' => Url::to('/courses/' . $courseId . '/units/' . $unitId . '/edit'),
+            'message' => 'ร่างหน่วยการเรียน ' . $title . ' พร้อมเนื้อหา ' . count($sections) . ' หัวข้อแล้ว',
+        ]);
+    }
+
+    /**
      * ดึงข้อความที่ prepare() เก็บไว้ออกมาใช้ แล้วลบทิ้งทันที (ใช้ได้ครั้งเดียว)
      *
      * @return array{message:string,attach:string}
@@ -369,8 +433,15 @@ final class AiChatController
             . 'ถ้าครูแนบไฟล์มา ให้ใช้ข้อมูลในไฟล์นั้นตอบคำถามหรือเติมข้อมูลรายวิชาให้ครบที่สุด' . "\n"
             . 'ถ้าครูขอให้สร้างหรือเพิ่มรายวิชา ให้ตอบกลับเป็น JSON บรรทัดเดียวเท่านั้น '
             . 'ห้ามมีข้อความอื่นนำหน้าหรือต่อท้าย และห้ามครอบด้วย ``` ตามรูปแบบนี้ '
-            . '{"action":"create_course","code":"20127-2002","name":"ชื่อวิชา","credits":3,"theory_hours":1,"practice_hours":2,"description":"คำอธิบายรายวิชา 1-2 ประโยค"} '
-            . 'ถ้าครูไม่ได้บอกรหัสวิชา ให้ตั้งรหัสที่สมเหตุสมผลตามรูปแบบรหัสวิชาอาชีวศึกษา '
+            . '{"action":"create_course","code":"20127-2002","name":"ชื่อวิชา","credits":3,"theory_hours":1,"practice_hours":2,"description":"คำอธิบายรายวิชา 1-2 ประโยค"}' . "\n"
+            . 'ถ้าครูขอให้สร้างหน่วยการเรียน บทเรียน หรือเนื้อหาในรายวิชา ให้ตอบกลับเป็น JSON บรรทัดเดียว '
+            . 'ในรูปแบบนี้แทน '
+            . '{"action":"create_unit","course_code":"รหัสวิชาถ้าครูระบุมา","title":"ชื่อหน่วยการเรียน",'
+            . '"key_content":"สาระสำคัญ 2-4 ประโยค","objectives":"จุดประสงค์การเรียนรู้ ขึ้นบรรทัดใหม่ด้วย \\n ข้อละบรรทัด",'
+            . '"competencies":"สมรรถนะประจำหน่วย","sections":[{"title":"ชื่อหัวข้อย่อย","content":"เนื้อหาของหัวข้อนั้นอย่างละเอียด"}]} '
+            . 'ให้มีหัวข้อย่อยใน sections 3-6 หัวข้อ เนื้อหาแต่ละหัวข้อยาวพอสอนได้จริง '
+            . 'ถ้าครูไม่ได้บอกรหัสวิชา ให้ใส่ course_code เป็นค่าว่าง แล้วครูจะเลือกรายวิชาเองบนหน้าจอ' . "\n"
+            . 'ถ้าครูไม่ได้บอกรหัสวิชาตอนสร้างรายวิชาใหม่ ให้ตั้งรหัสที่สมเหตุสมผลตามรูปแบบรหัสวิชาอาชีวศึกษา '
             . 'คำขออื่นนอกจากนี้ให้ตอบเป็นข้อความปกติ ห้ามตอบเป็น JSON';
     }
 
@@ -379,35 +450,106 @@ final class AiChatController
      *
      * @return array<string,mixed>|null
      */
-    private function parseAction(string $raw, bool $isTeacher): ?array
+    private function parseAction(string $raw, bool $isTeacher, int $teacherId = 0): ?array
     {
         if (!$isTeacher) {
             return null;
         }
 
         foreach (JsonStream::objects([$raw]) as $obj) {
-            if (($obj['action'] ?? '') !== 'create_course') {
-                continue;
+            $action = (string) ($obj['action'] ?? '');
+
+            if ($action === 'create_course') {
+                $code = trim((string) ($obj['code'] ?? ''));
+                $name = trim((string) ($obj['name'] ?? ''));
+                if ($code === '' || $name === '') {
+                    return null;
+                }
+
+                return [
+                    'action' => 'create_course',
+                    'code' => mb_substr($code, 0, 32),
+                    'name' => mb_substr($name, 0, 191),
+                    'credits' => (float) ($obj['credits'] ?? 3),
+                    'theory_hours' => (int) ($obj['theory_hours'] ?? 1),
+                    'practice_hours' => (int) ($obj['practice_hours'] ?? 2),
+                    'description' => mb_substr(trim((string) ($obj['description'] ?? '')), 0, 500),
+                ];
             }
 
-            $code = trim((string) ($obj['code'] ?? ''));
-            $name = trim((string) ($obj['name'] ?? ''));
-            if ($code === '' || $name === '') {
-                return null;
-            }
+            if ($action === 'create_unit') {
+                $title = trim((string) ($obj['title'] ?? ''));
+                if ($title === '') {
+                    return null;
+                }
 
-            return [
-                'action' => 'create_course',
-                'code' => mb_substr($code, 0, 32),
-                'name' => mb_substr($name, 0, 191),
-                'credits' => (float) ($obj['credits'] ?? 3),
-                'theory_hours' => (int) ($obj['theory_hours'] ?? 1),
-                'practice_hours' => (int) ($obj['practice_hours'] ?? 2),
-                'description' => mb_substr(trim((string) ($obj['description'] ?? '')), 0, 500),
-            ];
+                // ส่งรายวิชาของครูไปกับการ์ดด้วย ครูจะได้เลือกได้เองว่าจะลงหน่วยนี้ในวิชาไหน
+                $courses = array_map(static fn (array $c): array => [
+                    'id' => (int) $c['id'],
+                    'code' => (string) $c['code'],
+                    'name' => (string) $c['name'],
+                ], $this->courses->forTeacher($teacherId));
+
+                $wanted = trim((string) ($obj['course_code'] ?? ''));
+                $match = null;
+                foreach ($courses as $c) {
+                    if ($wanted !== '' && $c['code'] === $wanted) {
+                        $match = $c['id'];
+
+                        break;
+                    }
+                }
+
+                return [
+                    'action' => 'create_unit',
+                    'title' => mb_substr($title, 0, 191),
+                    'key_content' => mb_substr(trim((string) ($obj['key_content'] ?? '')), 0, 2000),
+                    'objectives' => mb_substr(trim((string) ($obj['objectives'] ?? '')), 0, 2000),
+                    'competencies' => mb_substr(trim((string) ($obj['competencies'] ?? '')), 0, 2000),
+                    'sections' => $this->cleanSections($obj['sections'] ?? []),
+                    'courses' => $courses,
+                    'course_id' => $match ?? ($courses[0]['id'] ?? null),
+                ];
+            }
         }
 
         return null;
+    }
+
+    /**
+     * หัวข้อย่อยที่โมเดลร่างมา — รับเฉพาะแบบข้อความ และจำกัดจำนวน/ความยาวไว้กันข้อมูลบวม
+     *
+     * @return list<array{title:string,content:string}>
+     */
+    private function cleanSections(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $sections = [];
+        foreach ($raw as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $title = trim((string) ($item['title'] ?? ''));
+            $content = trim((string) ($item['content'] ?? ''));
+            if ($title === '' && $content === '') {
+                continue;
+            }
+
+            $sections[] = [
+                'title' => mb_substr($title === '' ? 'หัวข้อย่อย' : $title, 0, 191),
+                'content' => mb_substr($content, 0, 20000),
+            ];
+
+            if (count($sections) >= 12) {
+                break;
+            }
+        }
+
+        return $sections;
     }
 
     private function json(Response $response, array $data, int $status = 200): Response

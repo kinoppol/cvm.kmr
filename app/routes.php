@@ -66,8 +66,10 @@ return static function (App $app): void {
             $c->post('/attach', [AiChatController::class, 'attach']);
         })->add(new RoleMiddleware(['teacher', 'admin']));
 
-        // ผู้ช่วยสร้างรายวิชาให้ตามคำขอ — ครูต้องกดยืนยันจากการ์ดในช่องสนทนาก่อนเสมอ
+        // ผู้ช่วยสร้างรายวิชา/หน่วยการเรียนให้ตามคำขอ — ครูต้องกดยืนยันจากการ์ดในช่องสนทนาก่อนเสมอ
         $group->post('/ai/chat/create-course', [AiChatController::class, 'createCourse'])
+            ->add(new RoleMiddleware(['teacher']));
+        $group->post('/ai/chat/create-unit', [AiChatController::class, 'createUnit'])
             ->add(new RoleMiddleware(['teacher']));
 
         $group->group('/courses', function (RouteCollectorProxy $t): void {

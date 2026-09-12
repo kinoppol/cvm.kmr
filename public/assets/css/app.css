@@ -1150,3 +1150,18 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
 .switch-sm .switch-dot { width: 16px; height: 16px; top: 3px; left: 3px; }
 .switch-sm.is-on .switch-dot { transform: translateX(16px); }
 .course-card-foot { cursor: default; }
+
+/* ---------- การ์ดสร้างหน่วยการเรียนในช่องสนทนา AI ---------- */
+.aichat-card-label {
+    display: block; margin: 12px 0 5px;
+    font: 400 12px/1.6 var(--body); color: var(--ink3);
+}
+.aichat-card-select {
+    width: 100%; height: 34px; padding: 0 9px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    font: 400 13px/1 var(--body);
+}
+.aichat-card-list {
+    margin: 10px 0 0; padding-left: 20px;
+    font: 400 12.5px/1.8 var(--body); color: var(--ink2);
+}

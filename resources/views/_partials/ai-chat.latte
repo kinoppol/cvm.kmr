@@ -25,11 +25,12 @@
         <div class="aichat-empty" id="aichatEmpty">
             <div class="aichat-empty-title">ถามหรือสั่งงานผู้ช่วยได้เลย</div>
             <div class="aichat-empty-body">
-                {if $isTeacher}สั่งให้ช่วยสร้างรายวิชาได้ ผู้ช่วยจะเสนอข้อมูลมาให้ตรวจก่อน แล้วครูค่อยกดยืนยัน · {/if}การพูดคุยไม่ตัดโควตาของส่วนกลาง
+                {if $isTeacher}สั่งให้ช่วยสร้างรายวิชาหรือหน่วยการเรียนพร้อมเนื้อหาได้ ผู้ช่วยจะเสนอข้อมูลมาให้ตรวจก่อน แล้วครูค่อยกดยืนยัน · {/if}การพูดคุยไม่ตัดโควตาของส่วนกลาง
             </div>
             <div class="aichat-suggest">
                 {if $isTeacher}
                     <button type="button" class="aichat-chip-btn" data-say="ช่วยสร้างรายวิชา การจัดแสดงสินค้าในร้านค้าปลีก ให้หน่อย">ช่วยสร้างรายวิชา การจัดแสดงสินค้าในร้านค้าปลีก ให้หน่อย</button>
+                    <button type="button" class="aichat-chip-btn" data-say="ช่วยสร้างหน่วยการเรียน การจัดวางสินค้าและการตกแต่งชั้นวาง พร้อมเนื้อหา">ช่วยสร้างหน่วยการเรียน การจัดวางสินค้าและการตกแต่งชั้นวาง พร้อมเนื้อหา</button>
                 {/if}
                 <button type="button" class="aichat-chip-btn" data-say="สวัสดี ทดสอบการเชื่อมต่อ">สวัสดี ทดสอบการเชื่อมต่อ</button>
                 <button type="button" class="aichat-chip-btn" data-say="อธิบายการบริหารสินค้าคงคลังในร้านค้าปลีกแบบสั้น ๆ">อธิบายการบริหารสินค้าคงคลังในร้านค้าปลีกแบบสั้น ๆ</button>
@@ -111,8 +112,107 @@
         return el;
     }
 
-    /** การ์ดยืนยันก่อนสร้างรายวิชาจริง */
+    /** การ์ดยืนยันก่อนบันทึกจริง — เลือกแบบตามชนิดของคำสั่งที่ผู้ช่วยเสนอมา */
     function actionCard(d) {
+        if (d && d.action === 'create_unit') { unitCard(d); return; }
+        courseCard(d);
+    }
+
+    /** การ์ดยืนยันก่อนสร้างหน่วยการเรียนพร้อมเนื้อหา */
+    function unitCard(d) {
+        if (empty) { empty.hidden = true; }
+
+        var sections = d.sections || [];
+        var el = document.createElement('div');
+        el.className = 'aichat-card';
+
+        var options = (d.courses || []).map(function (c) {
+            var sel = c.id === d.course_id ? ' selected' : '';
+            return '<option value="' + c.id + '"' + sel + '>' + esc(c.code + ' · ' + c.name) + '</option>';
+        }).join('');
+
+        el.innerHTML =
+            '<div class="aichat-card-title">สร้างหน่วยการเรียนนี้ให้ไหม</div>' +
+            '<dl class="aichat-card-rows">' +
+            '<div><dt>ชื่อหน่วย</dt><dd data-f="title"></dd></div>' +
+            '<div><dt>หัวข้อย่อย</dt><dd class="mono" data-f="count"></dd></div>' +
+            '</dl>' +
+            (options
+                ? '<label class="aichat-card-label">ลงในรายวิชา</label><select class="aichat-card-select">' + options + '</select>'
+                : '<div class="aichat-note is-err">ยังไม่มีรายวิชาให้เลือก · สร้างรายวิชาก่อนแล้วสั่งใหม่อีกครั้ง</div>') +
+            '<div class="aichat-card-desc" data-f="key_content"></div>' +
+            (sections.length
+                ? '<ol class="aichat-card-list">' + sections.map(function (s) {
+                    return '<li>' + esc(s.title) + '</li>';
+                }).join('') + '</ol>'
+                : '') +
+            '<div class="aichat-card-btns">' +
+            (options ? '<button type="button" class="aichat-card-ok">บันทึกเป็นฉบับร่าง</button>' : '') +
+            '<button type="button" class="aichat-card-no">ไม่ใช่ตอนนี้</button>' +
+            '</div>';
+
+        el.querySelector('[data-f="title"]').textContent = d.title;
+        el.querySelector('[data-f="count"]').textContent = sections.length + ' หัวข้อ';
+        el.querySelector('[data-f="key_content"]').textContent = d.key_content || '';
+
+        el.querySelector('.aichat-card-no').addEventListener('click', function () {
+            el.remove();
+            note('ยกเลิกการสร้างหน่วยการเรียนแล้ว', 'ok');
+        });
+
+        var ok = el.querySelector('.aichat-card-ok');
+        if (ok) {
+            ok.addEventListener('click', function () {
+                ok.disabled = true; ok.textContent = 'กำลังบันทึก…';
+
+                var body = new URLSearchParams({
+                    _token: token,
+                    course_id: el.querySelector('.aichat-card-select').value,
+                    title: d.title,
+                    key_content: d.key_content || '',
+                    objectives: d.objectives || '',
+                    competencies: d.competencies || '',
+                    sections: JSON.stringify(sections)
+                });
+
+                fetch(base + '/ai/chat/create-unit', {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body
+                }).then(function (r) { return r.json(); }).then(function (res) {
+                    if (!res.ok) {
+                        ok.disabled = false; ok.textContent = 'บันทึกเป็นฉบับร่าง';
+                        note(res.message || 'บันทึกหน่วยการเรียนไม่สำเร็จ', 'err');
+                        return;
+                    }
+                    el.remove();
+                    var done = document.createElement('div');
+                    done.className = 'aichat-note is-ok';
+                    done.textContent = res.message + ' · ';
+                    var a = document.createElement('a');
+                    a.href = res.url; a.textContent = 'เปิดหน่วยการเรียน';
+                    done.appendChild(a);
+                    log.appendChild(done);
+                    scroll();
+                }).catch(function () {
+                    ok.disabled = false; ok.textContent = 'บันทึกเป็นฉบับร่าง';
+                    note('เรียกบันทึกหน่วยการเรียนไม่สำเร็จ', 'err');
+                });
+            });
+        }
+
+        log.appendChild(el);
+        scroll();
+    }
+
+    function esc(s) {
+        var d = document.createElement('span');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+    }
+
+    /** การ์ดยืนยันก่อนสร้างรายวิชาจริง */
+    function courseCard(d) {
         if (empty) { empty.hidden = true; }
 
         var el = document.createElement('div');
