@@ -218,6 +218,28 @@ final class CourseRepository
     }
 
     /**
+     * รายวิชาที่เผยแพร่สู่สาธารณะแล้ว สำหรับหน้าที่ผู้เยี่ยมชมเปิดดูได้โดยไม่ต้องเข้าสู่ระบบ
+     * คืน null ถ้าไม่มีวิชานี้ หรือครูยังไม่ได้เผยแพร่ (กันเดา id เพื่อดูวิชาที่ยังไม่เปิด)
+     *
+     * @return array<string,mixed>|null
+     */
+    public function publicFind(int $id): ?array
+    {
+        return $this->db->first(
+            'SELECT c.id, c.code, c.name, c.credits, c.theory_hours, c.practice_hours, c.description,
+                    cr.name AS classroom_name, d.name AS department_name,
+                    u.full_name AS teacher_name, t.name AS term_name
+             FROM {courses} c
+             LEFT JOIN {classrooms} cr ON cr.id = c.classroom_id
+             LEFT JOIN {departments} d ON d.id = cr.department_id
+             LEFT JOIN {users} u ON u.id = c.teacher_id
+             LEFT JOIN {academic_terms} t ON t.id = c.term_id
+             WHERE c.id = ? AND c.show_on_landing = 1 AND c.status = \'active\'',
+            [$id]
+        );
+    }
+
+    /**
      * รายวิชาที่ครูเลือกให้แสดงในหน้าแรกสาธารณะ จัดกลุ่มตามสาขาวิชา
      *
      * @return list<array{department:string,courses:list<array<string,mixed>>}>

@@ -22,6 +22,7 @@ use App\Controllers\BoardController;
 use App\Controllers\UnitController;
 use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
+use App\Controllers\PublicCourseController;
 use App\Controllers\RegisterController;
 use App\Controllers\ResetPasswordController;
 use App\Controllers\ReviewController;
@@ -42,6 +43,10 @@ return static function (App $app): void {
     // ครูทั่วไปสมัครเข้าใช้ระบบเอง — บัญชีเริ่มที่สถานะ "รออนุมัติ" เสมอ
     $app->get('/register', [RegisterController::class, 'show'])->setName('register');
     $app->post('/register', [RegisterController::class, 'register']);
+
+    // รายวิชาที่ครูเผยแพร่ — คนทั่วไปอ่านเนื้อหาได้โดยไม่ต้องสมัครหรือเข้าสู่ระบบ
+    $app->get('/course/{id:[0-9]+}', [PublicCourseController::class, 'show'])->setName('public.course');
+    $app->get('/course/{id:[0-9]+}/unit/{unitId:[0-9]+}', [PublicCourseController::class, 'unit'])->setName('public.unit');
 
     // ลิงก์รีเซ็ตรหัสผ่านที่ผู้ดูแลระบบสร้างให้ครูที่ลืมรหัสผ่าน — ไม่ต้องล็อกอินก่อน
     $app->get('/reset-password/{token}', [ResetPasswordController::class, 'show'])->setName('reset-password');
