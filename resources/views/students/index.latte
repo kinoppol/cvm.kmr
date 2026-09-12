@@ -6,7 +6,7 @@
 <div class="page-head">
     <div>
         <h1>นักเรียนของฉัน</h1>
-        <div class="sub">ใช้ร่วมกันได้กับครูคนอื่นในสถานศึกษาเดียวกัน · {count($students)} คน</div>
+        <div class="sub">ใช้ร่วมกันได้กับครูคนอื่นในสถานศึกษาเดียวกัน · ทั้งหมด {$total} คน</div>
     </div>
     <div class="actions">
         <a class="btn" href="{$base}/students/import">นำเข้าจาก Excel</a>
@@ -14,8 +14,19 @@
     </div>
 </div>
 
-<form method="get" action="{$base}/students" class="field" style="max-width:340px;margin-bottom:16px">
-    <input class="input" type="search" name="q" value="{$search}" placeholder="ค้นหารหัสนักศึกษาหรือชื่อ">
+<form method="get" action="{$base}/students" class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input class="input" type="search" name="q" style="width:260px" value="{$search}" placeholder="ค้นรหัสนักศึกษา ชื่อ-สกุล หรืออีเมล">
+    <select name="status" class="input" style="width:160px">
+        <option value="">— ทุกสถานะ —</option>
+        <option value="active" n:attr="selected: $status === 'active'">ใช้งาน</option>
+        <option value="suspended" n:attr="selected: $status === 'suspended'">ระงับ</option>
+    </select>
+    <button type="submit" class="btn btn-sm btn-primary">กรอง</button>
+    {if $search || $status}<a href="{$base}/students" class="btn btn-sm">ล้างตัวกรอง</a>{/if}
+    <div class="spacer"></div>
+    <span class="hint">
+        {if $total > 0}แสดง {($pageNo - 1) * $perPage + 1}–{min($pageNo * $perPage, $total)} จาก {$total} คน{/if}
+    </span>
 </form>
 
 {if $students}
@@ -45,9 +56,25 @@
             </table>
         </div>
     </div>
+
+    {if $pages > 1}
+        {var $qs = $queryString ? $queryString . '&' : ''}
+        <nav class="pager">
+            {if $pageNo > 1}
+                <a class="btn btn-sm" href="{$base}/students?{$qs}page={$pageNo - 1}">← ก่อนหน้า</a>
+            {/if}
+            {foreach range(max(1, $pageNo - 2), min($pages, $pageNo + 2)) as $p}
+                <a href="{$base}/students?{$qs}page={$p}" n:class="btn, btn-sm, $p === $pageNo ? btn-primary">{$p}</a>
+            {/foreach}
+            {if $pageNo < $pages}
+                <a class="btn btn-sm" href="{$base}/students?{$qs}page={$pageNo + 1}">ถัดไป →</a>
+            {/if}
+            <span class="hint">หน้า {$pageNo} จาก {$pages}</span>
+        </nav>
+    {/if}
 {else}
     <div class="empty">
-        <h3>{if $search}ไม่พบนักเรียนที่ค้นหา{else}ยังไม่มีนักเรียนในระบบ{/if}</h3>
+        <h3>{if $search || $status}ไม่พบนักเรียนตามเงื่อนไขนี้{else}ยังไม่มีนักเรียนในระบบ{/if}</h3>
         <p>เพิ่มทีละคน หรือ นำเข้ารายชื่อจากไฟล์ Excel ได้จากปุ่มด้านบน</p>
     </div>
 {/if}

@@ -17,25 +17,49 @@ final class StudentAccountRepository
     }
 
     /** @return list<array<string,mixed>> */
-    public function forInstitution(int $institutionId, string $search = ''): array
-    {
-        if ($search !== '') {
-            return $this->db->all(
-                "SELECT id, username, full_name, email, phone, status, created_at
-                 FROM {users}
-                 WHERE institution_id = ? AND role = 'student'
-                   AND (username LIKE ? OR full_name LIKE ?)
-                 ORDER BY username",
-                [$institutionId, "%$search%", "%$search%"]
-            );
-        }
+    public function forInstitution(
+        int $institutionId,
+        string $search = '',
+        string $status = '',
+        int $limit = 50,
+        int $offset = 0
+    ): array {
+        [$clause, $params] = $this->filter($institutionId, $search, $status);
 
         return $this->db->all(
             "SELECT id, username, full_name, email, phone, status, created_at
-             FROM {users} WHERE institution_id = ? AND role = 'student'
-             ORDER BY username",
-            [$institutionId]
+             FROM {users} $clause
+             ORDER BY username
+             LIMIT $limit OFFSET $offset",
+            $params
         );
+    }
+
+    /** จำนวนนักเรียนทั้งหมดตามเงื่อนไขเดียวกับ forInstitution() ใช้คำนวณจำนวนหน้า */
+    public function countForInstitution(int $institutionId, string $search = '', string $status = ''): int
+    {
+        [$clause, $params] = $this->filter($institutionId, $search, $status);
+
+        return $this->db->int("SELECT COUNT(*) FROM {users} $clause", $params);
+    }
+
+    /** @return array{0:string,1:list<mixed>} */
+    private function filter(int $institutionId, string $search, string $status): array
+    {
+        $where = ["institution_id = ?", "role = 'student'"];
+        $params = [$institutionId];
+
+        if ($search !== '') {
+            $where[] = '(username LIKE ? OR full_name LIKE ? OR email LIKE ?)';
+            $like = '%' . $search . '%';
+            array_push($params, $like, $like, $like);
+        }
+        if ($status !== '') {
+            $where[] = 'status = ?';
+            $params[] = $status;
+        }
+
+        return ['WHERE ' . implode(' AND ', $where), $params];
     }
 
     public function find(int $id, int $institutionId): ?array

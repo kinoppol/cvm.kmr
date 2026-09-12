@@ -30,6 +30,9 @@ final class StudentsController
     private const USERNAME_PATTERN = '/^[A-Za-z0-9._-]{2,64}$/';
     private const NATIONAL_ID_PATTERN = '/^\d{13}$/';
 
+    private const PER_PAGE = 50;
+    private const STATUSES = ['active', 'suspended'];
+
     private const TEMPLATE_HEADERS = ['รหัสนักศึกษา', 'ชื่อ-สกุล', 'เลขประจำตัวประชาชน', 'อีเมล', 'เบอร์โทรศัพท์'];
 
     public function __construct(
@@ -46,12 +49,33 @@ final class StudentsController
             return $response;
         }
 
-        $search = trim((string) ($request->getQueryParams()['q'] ?? ''));
+        $query = $request->getQueryParams();
+        $search = trim((string) ($query['q'] ?? ''));
+        $status = in_array($query['status'] ?? '', self::STATUSES, true) ? (string) $query['status'] : '';
+
+        $total = $this->students->countForInstitution($institutionId, $search, $status);
+        $pages = max(1, (int) ceil($total / self::PER_PAGE));
+        $pageNo = min($pages, max(1, (int) ($query['page'] ?? 1)));
 
         return $this->view->render($response, 'students/index', [
             'page' => 'students',
-            'students' => $this->students->forInstitution($institutionId, $search),
+            'students' => $this->students->forInstitution(
+                $institutionId,
+                $search,
+                $status,
+                self::PER_PAGE,
+                ($pageNo - 1) * self::PER_PAGE
+            ),
             'search' => $search,
+            'status' => $status,
+            'total' => $total,
+            'pageNo' => $pageNo,
+            'pages' => $pages,
+            'perPage' => self::PER_PAGE,
+            'queryString' => http_build_query(array_filter([
+                'q' => $search,
+                'status' => $status,
+            ], static fn (string $v): bool => $v !== '')),
         ]);
     }
 
@@ -184,9 +208,16 @@ final class StudentsController
         return $this->view->render($response, 'students/import', ['page' => 'students', 'result' => null]);
     }
 
-    /** ดาวน์โหลดไฟล์ต้นแบบสำหรับนำเข้ารายชื่อนักเรียน */
+    /**
+     * ดาวน์โหลดไฟล์ต้นแบบสำหรับนำเข้ารายชื่อนักเรียน
+     * ถ้าเซิร์ฟเวอร์ยังไม่ได้ติดตั้งไลบรารี Excel จะส่งเป็น CSV แทน (Excel เปิดได้เหมือนกัน)
+     */
     public function template(Request $request, Response $response): Response
     {
+        if (!class_exists(Spreadsheet::class)) {
+            return $this->csvTemplate($response);
+        }
+
         $sheet = new Spreadsheet();
         $active = $sheet->getActiveSheet();
         $active->setTitle('นำเข้านักเรียน');
@@ -209,9 +240,35 @@ final class StudentsController
             ->withHeader('Content-Disposition', 'attachment; filename="student_import_template.xlsx"');
     }
 
+    /** ไฟล์ต้นแบบแบบ CSV สำรอง — BOM นำหน้าเพื่อให้ Excel อ่านภาษาไทยถูก */
+    private function csvTemplate(Response $response): Response
+    {
+        $rows = [
+            self::TEMPLATE_HEADERS,
+            ['66201001', 'สมชาย ใจดี', '1100500123456', 'somchai@example.com', '0812345678'],
+        ];
+
+        $csv = "\xEF\xBB\xBF";
+        foreach ($rows as $row) {
+            $csv .= implode(',', array_map(static fn (string $v): string => '"' . str_replace('"', '""', $v) . '"', $row)) . "\r\n";
+        }
+
+        $response->getBody()->write($csv);
+
+        return $response
+            ->withHeader('Content-Type', 'text/csv; charset=utf-8')
+            ->withHeader('Content-Disposition', 'attachment; filename="student_import_template.csv"');
+    }
+
     /** นำเข้ารายชื่อนักเรียนจากไฟล์ Excel — เพิ่มใหม่หรืออัปเดตข้อมูลถ้ารหัสนักศึกษาซ้ำในสถานศึกษาเดียวกัน */
     public function import(Request $request, Response $response): Response
     {
+        if (!class_exists(IOFactory::class)) {
+            Flash::error('เซิร์ฟเวอร์ยังไม่ได้ติดตั้งไลบรารีอ่านไฟล์ Excel กรุณาแจ้งผู้ดูแลระบบให้รัน composer install');
+
+            return $this->redirect($response, '/students/import');
+        }
+
         $institutionId = $this->requireInstitution($request, $response);
         if ($institutionId === null) {
             return $response;
