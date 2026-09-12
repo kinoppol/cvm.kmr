@@ -67,7 +67,7 @@ return static function (App $app): void {
 
         $group->group('/courses', function (RouteCollectorProxy $t): void {
             $t->get('', [CourseController::class, 'index'])->setName('courses');
-            $t->post('/landing-visibility', [CourseController::class, 'landingVisibility']);
+            $t->post('/{id:[0-9]+}/landing', [CourseController::class, 'landingVisibility']);
             $t->get('/new', [CourseController::class, 'edit'])->setName('course.new');
             $t->post('', [CourseController::class, 'save']);
             $t->get('/{id:[0-9]+}', [CourseController::class, 'show'])->setName('course.show');

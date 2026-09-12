@@ -39,12 +39,11 @@ final class CourseController
         return $this->view->render($response, 'courses/index', [
             'page' => 'courses',
             'courses' => $courses,
-            'landingVisible' => $this->courses->landingEnabledForTeacher((int) $user['id']),
         ]);
     }
 
-    /** ครูเปิด/ปิดการแสดงรายวิชาของตนเองในหน้าแรกสาธารณะ */
-    public function landingVisibility(Request $request, Response $response): Response
+    /** ครูเผยแพร่/ยกเลิกเผยแพร่รายวิชาทีละวิชาในหน้าแรกสาธารณะ */
+    public function landingVisibility(Request $request, Response $response, array $args): Response
     {
         $user = $request->getAttribute('user');
         $data = (array) $request->getParsedBody();
@@ -55,12 +54,13 @@ final class CourseController
             return $response->withHeader('Location', Url::to('/courses'))->withStatus(302);
         }
 
+        $course = $this->requireOwnedCourse($request, (int) $args['id'], (int) $user['id']);
         $visible = ($data['visible'] ?? '') === '1';
-        $this->courses->setLandingForTeacher((int) $user['id'], $visible);
+        $this->courses->setLandingForCourse((int) $course['id'], $visible);
 
         Flash::success($visible
-            ? 'เปิดการแสดงรายวิชาของคุณในหน้าแรกสาธารณะแล้ว'
-            : 'ปิดการแสดงรายวิชาของคุณในหน้าแรกสาธารณะแล้ว');
+            ? 'เผยแพร่รายวิชา ' . $course['name'] . ' ในหน้าแรกสาธารณะแล้ว'
+            : 'ยกเลิกการเผยแพร่รายวิชา ' . $course['name'] . ' ในหน้าแรกแล้ว');
 
         return $response->withHeader('Location', Url::to('/courses'))->withStatus(302);
     }

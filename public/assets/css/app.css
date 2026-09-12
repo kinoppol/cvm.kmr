@@ -1137,3 +1137,16 @@ textarea.input { line-height: 1.6; resize: vertical; min-height: 44px; }
 }
 .confirm-mark.is-danger { background: var(--errSoft); color: var(--err); }
 .confirm-text { margin: 0; color: var(--ink2); line-height: 1.75; }
+
+/* ---------- สวิตช์เผยแพร่รายวิชาบนการ์ด ---------- */
+.course-card-link { display: block; color: inherit; text-decoration: none; }
+.course-card-foot {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 16px; border-top: 1px solid var(--line2); background: var(--surface2);
+}
+.course-card-foot-text { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink3); }
+.course-card-foot-text.is-on { color: var(--brand); font-weight: 500; }
+.switch-sm { width: 38px; height: 22px; border-radius: 11px; }
+.switch-sm .switch-dot { width: 16px; height: 16px; top: 3px; left: 3px; }
+.switch-sm.is-on .switch-dot { transform: translateX(16px); }
+.course-card-foot { cursor: default; }

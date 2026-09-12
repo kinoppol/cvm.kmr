@@ -211,22 +211,10 @@ final class CourseRepository
         ], ['id' => $id]);
     }
 
-    /** ครูคนนี้เปิดให้แสดงรายวิชาในหน้าแรกสาธารณะหรือไม่ (ถือว่าเปิดถ้ามีอย่างน้อยหนึ่งวิชาที่ตั้งไว้) */
-    public function landingEnabledForTeacher(int $teacherId): bool
+    /** เผยแพร่/ยกเลิกการเผยแพร่รายวิชานี้ในหน้าแรกสาธารณะ (ตั้งค่าแยกเป็นรายวิชา) */
+    public function setLandingForCourse(int $courseId, bool $visible): void
     {
-        return $this->db->int(
-            'SELECT COUNT(*) FROM {courses} WHERE teacher_id = ? AND status = \'active\' AND show_on_landing = 1',
-            [$teacherId]
-        ) > 0;
-    }
-
-    /** ตั้งค่าแสดง/ไม่แสดงรายวิชาทั้งหมดของครูในหน้าแรก */
-    public function setLandingForTeacher(int $teacherId, bool $visible): int
-    {
-        return $this->db->run(
-            'UPDATE {courses} SET show_on_landing = ? WHERE teacher_id = ? AND status = \'active\'',
-            [$visible ? 1 : 0, $teacherId]
-        );
+        $this->db->update('courses', ['show_on_landing' => $visible ? 1 : 0], ['id' => $courseId]);
     }
 
     /**
