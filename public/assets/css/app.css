@@ -1232,3 +1232,12 @@ textarea.input {
 
 /* หน้าฟอร์มที่ต้องพิมพ์เนื้อหายาว ๆ (ใบงาน, เนื้อหาหน่วยการเรียน) */
 .form-page-wide { max-width: 1040px; }
+
+/* ---------- ลิงก์กลับหน้าแรกท้ายกล่องเข้าสู่ระบบ/สมัครสมาชิก ---------- */
+.panel-foot-link {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
+    text-align: center; font-size: 12.5px;
+}
+.panel-foot-link a { color: var(--ink3); }
+.panel-foot-link a:hover { color: var(--brand); }
+a.brand-mark { text-decoration: none; }
