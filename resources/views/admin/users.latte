@@ -95,12 +95,24 @@
                             {else}<span class="chip chip-err">ระงับ</span>{/if}
                         </td>
                         <td class="mono" style="font-size:12.5px">{$u['last_login_text']}</td>
-                        <td style="text-align:right">
+                        <td style="text-align:right;white-space:nowrap">
                             {if $u['role'] !== 'admin' && $u['status'] === 'active' && (int) $u['id'] !== (int) ($user['id'] ?? 0)}
-                                <form method="post" action="{$base}/admin/users/{$u['id']}/impersonate"
+                                <form method="post" action="{$base}/admin/users/{$u['id']}/impersonate" style="display:inline-block"
                                       onsubmit="return confirm('เข้าใช้งานระบบในนาม {$u['full_name']}? จะกลับเป็นผู้ดูแลได้เมื่อกด กลับเป็นผู้ดูแล')">
                                     <input type="hidden" name="_token" value="{$csrf}">
                                     <button type="submit" class="btn btn-sm">สวมสิทธิ์</button>
+                                </form>
+                            {/if}
+                            {if $u['role'] === 'teacher' && $u['status'] === 'active'}
+                                <form method="post" action="{$base}/admin/users/{$u['id']}/reset-link" style="display:inline-block"
+                                      onsubmit="return confirm('สร้างลิงก์รีเซ็ตรหัสผ่านของ {$u['full_name']}?')">
+                                    <input type="hidden" name="_token" value="{$csrf}">
+                                    <button type="submit" class="btn btn-sm">สร้างลิงก์รีเซ็ต</button>
+                                </form>
+                                <form method="post" action="{$base}/admin/users/{$u['id']}/reset-password" style="display:inline-block"
+                                      onsubmit="return confirm('รีเซ็ตรหัสผ่านของ {$u['full_name']} เป็นรหัสสุ่มใหม่ทันที?')">
+                                    <input type="hidden" name="_token" value="{$csrf}">
+                                    <button type="submit" class="btn btn-sm btn-ghost-danger">รีเซ็ตรหัสผ่าน</button>
                                 </form>
                             {/if}
                         </td>

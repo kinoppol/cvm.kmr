@@ -46,12 +46,12 @@
             <label n:class="login-tab, $as !== 'student' ? is-active">
                 <input type="radio" name="as" value="staff" n:attr="checked: $as !== 'student'"
                        onchange="document.getElementById('loginInstitutionField').hidden = true; document.getElementById('username').placeholder = '';">
-                ครู / ผู้ดูแลระบบ
+                <span class="login-tab-icon">🧑‍🏫</span>ครู / ผู้ดูแลระบบ
             </label>
             <label n:class="login-tab, $as === 'student' ? is-active">
                 <input type="radio" name="as" value="student" n:attr="checked: $as === 'student'"
                        onchange="document.getElementById('loginInstitutionField').hidden = false; document.getElementById('username').placeholder = 'รหัสนักศึกษา';">
-                นักเรียน
+                <span class="login-tab-icon">🎓</span>นักเรียน
             </label>
         </div>
 

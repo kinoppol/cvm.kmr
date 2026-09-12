@@ -12,6 +12,7 @@ use App\Support\Flash;
 use App\Support\Thai;
 use App\Support\Url;
 use App\Support\View;
+use App\Support\Config;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -26,6 +27,7 @@ final class UsersController
         private readonly Db $db,
         private readonly Auth $auth,
         private readonly SettingsRepository $settings,
+        private readonly Config $config,
     ) {
     }
 
@@ -130,6 +132,75 @@ final class UsersController
 
         $this->auth->log('user.reject', 'user#' . $id);
         Flash::warning('ปฏิเสธคำขอสมัครของ ' . $target['full_name'] . ' แล้ว');
+
+        return $this->redirect($response);
+    }
+
+    /** รีเซ็ตรหัสผ่านทันที — สุ่มรหัสผ่านใหม่ให้ แล้วโชว์ครั้งเดียวให้ผู้ดูแลนำไปแจ้งเจ้าของบัญชี */
+    public function resetPassword(Request $request, Response $response, array $args): Response
+    {
+        $data = (array) $request->getParsedBody();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirect($response);
+        }
+
+        $id = (int) $args['id'];
+        $target = $this->db->first(
+            "SELECT full_name FROM {users} WHERE id = ? AND role IN ('teacher', 'admin') AND status = 'active'",
+            [$id]
+        );
+
+        if ($target === null) {
+            Flash::error('ไม่พบบัญชีนี้ หรือบัญชีถูกระงับอยู่');
+
+            return $this->redirect($response);
+        }
+
+        $password = $this->auth->resetPasswordNow($id);
+        $this->auth->log('user.password.reset', 'user#' . $id);
+
+        Flash::success(sprintf(
+            'รีเซ็ตรหัสผ่านของ %s แล้ว · รหัสผ่านใหม่คือ %s (แจ้งเจ้าของบัญชีให้เปลี่ยนรหัสผ่านทันทีหลังเข้าใช้)',
+            $target['full_name'],
+            $password
+        ));
+
+        return $this->redirect($response);
+    }
+
+    /** สร้างลิงก์รีเซ็ตรหัสผ่านให้คัดลอกไปส่งเอง (ระบบยังไม่มีตัวส่งอีเมล) — หมดอายุใน 60 นาที */
+    public function resetLink(Request $request, Response $response, array $args): Response
+    {
+        $data = (array) $request->getParsedBody();
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ');
+
+            return $this->redirect($response);
+        }
+
+        $id = (int) $args['id'];
+        $target = $this->db->first(
+            "SELECT full_name FROM {users} WHERE id = ? AND role IN ('teacher', 'admin') AND status = 'active'",
+            [$id]
+        );
+
+        if ($target === null) {
+            Flash::error('ไม่พบบัญชีนี้ หรือบัญชีถูกระงับอยู่');
+
+            return $this->redirect($response);
+        }
+
+        $token = $this->auth->createPasswordResetToken($id);
+        $link = rtrim((string) $this->config->get('app.url'), '/') . '/reset-password/' . $token;
+        $this->auth->log('user.password.reset_link', 'user#' . $id);
+
+        Flash::success(sprintf(
+            'สร้างลิงก์รีเซ็ตรหัสผ่านของ %s แล้ว (หมดอายุใน 60 นาที) คัดลอกไปส่งให้เจ้าของบัญชีเอง: %s',
+            $target['full_name'],
+            $link
+        ));
 
         return $this->redirect($response);
     }

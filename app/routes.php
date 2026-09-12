@@ -21,6 +21,7 @@ use App\Controllers\UnitController;
 use App\Controllers\LessonPlanController;
 use App\Controllers\QuizWizardController;
 use App\Controllers\RegisterController;
+use App\Controllers\ResetPasswordController;
 use App\Controllers\ReviewController;
 use App\Controllers\SettingsController;
 use App\Controllers\StudentController;
@@ -39,6 +40,10 @@ return static function (App $app): void {
     // ครูทั่วไปสมัครเข้าใช้ระบบเอง — บัญชีเริ่มที่สถานะ "รออนุมัติ" เสมอ
     $app->get('/register', [RegisterController::class, 'show'])->setName('register');
     $app->post('/register', [RegisterController::class, 'register']);
+
+    // ลิงก์รีเซ็ตรหัสผ่านที่ผู้ดูแลระบบสร้างให้ครูที่ลืมรหัสผ่าน — ไม่ต้องล็อกอินก่อน
+    $app->get('/reset-password/{token}', [ResetPasswordController::class, 'show'])->setName('reset-password');
+    $app->post('/reset-password/{token}', [ResetPasswordController::class, 'update']);
 
     $app->group('', function (RouteCollectorProxy $group): void {
         $group->get('/dashboard', [DashboardController::class, 'index'])->setName('dashboard');
@@ -163,6 +168,8 @@ return static function (App $app): void {
             $admin->post('/users/{id:[0-9]+}/approve', [AdminUsersController::class, 'approve']);
             $admin->post('/users/{id:[0-9]+}/reject', [AdminUsersController::class, 'reject']);
             $admin->post('/users/settings', [AdminUsersController::class, 'saveSettings']);
+            $admin->post('/users/{id:[0-9]+}/reset-password', [AdminUsersController::class, 'resetPassword']);
+            $admin->post('/users/{id:[0-9]+}/reset-link', [AdminUsersController::class, 'resetLink']);
 
             $admin->get('/settings', [GeneralController::class, 'index'])->setName('admin.settings');
             $admin->post('/settings', [GeneralController::class, 'save']);

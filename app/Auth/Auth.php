@@ -307,6 +307,75 @@ final class Auth
         ]);
     }
 
+    /**
+     * ผู้ดูแลระบบรีเซ็ตรหัสผ่านให้ผู้ใช้คนหนึ่งทันที — สุ่มรหัสผ่านใหม่และคืนค่าให้แจ้งเจ้าของบัญชีเอง
+     * ยกเลิกลิงก์รีเซ็ตที่ยังค้างอยู่ของบัญชีนี้ด้วย เพื่อไม่ให้ใช้ซ้ำได้อีก
+     */
+    public function resetPasswordNow(int $userId): string
+    {
+        $password = bin2hex(random_bytes(5));
+        $this->updateHash($userId, password_hash($password, PASSWORD_DEFAULT));
+        $this->invalidatePasswordResetTokens($userId);
+
+        return $password;
+    }
+
+    /**
+     * สร้างลิงก์รีเซ็ตรหัสผ่านให้ผู้ใช้คนหนึ่ง — ผู้ดูแลคัดลอกลิงก์ไปส่งให้เจ้าของบัญชีเอง (ระบบยังไม่มีตัวส่งอีเมล)
+     * คืนค่า token ดิบ (เก็บลงฐานข้อมูลเฉพาะค่าแฮช) หมดอายุใน 60 นาที
+     */
+    public function createPasswordResetToken(int $userId, int $minutesValid = 60): string
+    {
+        $this->invalidatePasswordResetTokens($userId);
+
+        $token = bin2hex(random_bytes(32));
+        $stmt = $this->db->prepare(sprintf(
+            'INSERT INTO `%spassword_resets` (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+            $this->prefix
+        ));
+        $stmt->execute([$userId, hash('sha256', $token), date('Y-m-d H:i:s', time() + $minutesValid * 60)]);
+
+        return $token;
+    }
+
+    /**
+     * ตรวจ token จากลิงก์รีเซ็ต คืนข้อมูลผู้ใช้ถ้ายังไม่หมดอายุ ไม่งั้นคืน null
+     */
+    public function userForPasswordResetToken(string $token): ?array
+    {
+        $stmt = $this->db->prepare(sprintf(
+            'SELECT u.id, u.username, u.full_name, u.status FROM `%spassword_resets` r
+             JOIN `%susers` u ON u.id = r.user_id
+             WHERE r.token_hash = ? AND r.expires_at > NOW()',
+            $this->prefix,
+            $this->prefix
+        ));
+        $stmt->execute([hash('sha256', $token)]);
+        $user = $stmt->fetch();
+
+        return $user === false ? null : $user;
+    }
+
+    /** ตั้งรหัสผ่านใหม่ด้วย token จากลิงก์รีเซ็ต แล้วเผาลิงก์นั้นทิ้ง */
+    public function resetPasswordWithToken(string $token, string $newPassword): bool
+    {
+        $user = $this->userForPasswordResetToken($token);
+        if ($user === null) {
+            return false;
+        }
+
+        $this->updateHash((int) $user['id'], password_hash($newPassword, PASSWORD_DEFAULT));
+        $this->invalidatePasswordResetTokens((int) $user['id']);
+
+        return true;
+    }
+
+    private function invalidatePasswordResetTokens(int $userId): void
+    {
+        $stmt = $this->db->prepare(sprintf('DELETE FROM `%spassword_resets` WHERE user_id = ?', $this->prefix));
+        $stmt->execute([$userId]);
+    }
+
     private function updateHash(int $id, string $hash): void
     {
         $stmt = $this->db->prepare(sprintf('UPDATE `%susers` SET password_hash = ? WHERE id = ?', $this->prefix));
