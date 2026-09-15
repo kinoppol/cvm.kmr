@@ -7,6 +7,8 @@
     <div class="dash-greeting">สวัสดี {$firstName}</div>
     <div class="dash-sub">{$term ?? ''} · เรียน {count($courses)} รายวิชา</div>
 
+    {include '../_partials/join-form.latte'}
+
     {if $courses}
         <div class="course-grid">
             {foreach $courses as $c}
@@ -24,7 +26,7 @@
     {else}
         <div class="empty" style="margin-top:26px">
             <h3>ยังไม่ได้ลงทะเบียนในรายวิชาใด</h3>
-            <p>ติดต่อครูประจำวิชาเพื่อเพิ่มชื่อเข้ารายวิชา</p>
+            <p>ขอรหัสหรือลิงก์เข้าร่วมจากครูประจำวิชา แล้วกรอกในช่องด้านบน</p>
         </div>
     {/if}
 </div>

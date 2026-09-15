@@ -104,6 +104,50 @@
             {/if}
 
         {elseif $tab === 'students'}
+            <div class="card join-invite">
+                <div class="join-invite-head">
+                    <div>
+                        <h2>ให้นักเรียนเข้าร่วมรายวิชาเอง</h2>
+                        <div class="card-sub">
+                            {if $course['join_enabled']}
+                                แจกรหัสหรือลิงก์นี้ นักเรียนเข้าสู่ระบบแล้วกรอกรหัส หรือเปิดลิงก์ ก็เข้ารายวิชาได้ทันที
+                            {else}
+                                ปิดการเข้าร่วมอยู่ · รหัสและลิงก์ใช้ไม่ได้จนกว่าจะเปิดอีกครั้ง
+                            {/if}
+                        </div>
+                    </div>
+                    <form method="post" action="{$base}/courses/{$course['id']}/join">
+                        <input type="hidden" name="_token" value="{$csrf}">
+                        {if $course['join_enabled']}
+                            <button class="btn btn-sm" name="do" value="close">ปิดการเข้าร่วม</button>
+                        {else}
+                            <button class="btn btn-sm btn-primary" name="do" value="open">เปิดการเข้าร่วม</button>
+                        {/if}
+                    </form>
+                </div>
+
+                <div n:class="join-invite-body, !$course['join_enabled'] ? is-off">
+                    <div class="join-invite-code">
+                        <div class="join-label">รหัสเข้าร่วม</div>
+                        <div class="join-code mono">{$joinCode}</div>
+                        <button type="button" class="btn btn-sm" data-copy="{$joinCode}">คัดลอกรหัส</button>
+                    </div>
+                    <div class="join-invite-link">
+                        <div class="join-label">ลิงก์เข้าร่วม</div>
+                        <input class="input mono" value="{$joinUrl}" readonly onfocus="this.select()">
+                        <div class="join-invite-actions">
+                            <button type="button" class="btn btn-sm" data-copy="{$joinUrl}">คัดลอกลิงก์</button>
+                            <form method="post" action="{$base}/courses/{$course['id']}/join"
+                                  data-confirm-title="สร้างรหัสใหม่" data-confirm-ok="สร้างรหัสใหม่" data-confirm-danger
+                                  data-confirm="รหัสและลิงก์เดิมจะใช้ไม่ได้ทันที · นักเรียนที่เข้าร่วมแล้วยังอยู่ในรายวิชาครบ">
+                                <input type="hidden" name="_token" value="{$csrf}">
+                                <button class="btn btn-sm" name="do" value="regenerate">สร้างรหัสใหม่</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="list">
                 {foreach $students as $s}
                     <div class="list-row">
@@ -112,7 +156,7 @@
                         <div class="list-main"><div class="list-title">{$s['full_name']}</div></div>
                     </div>
                 {/foreach}
-                {if !$students}<div class="empty"><h3>ยังไม่มีนักเรียนในรายวิชานี้</h3></div>{/if}
+                {if !$students}<div class="empty"><h3>ยังไม่มีนักเรียนในรายวิชานี้</h3><p>แจกรหัสหรือลิงก์เข้าร่วมด้านบนให้นักเรียน รายชื่อจะขึ้นที่นี่เมื่อนักเรียนเข้าร่วมแล้ว</p></div>{/if}
             </div>
 
         {else}
@@ -153,5 +197,28 @@
         toggle.addEventListener('click', function (e) { e.stopPropagation(); panel.hidden = !panel.hidden; });
         document.addEventListener('click', function () { panel.hidden = true; });
     })();
+
+    // ปุ่มคัดลอกรหัส/ลิงก์เข้าร่วม
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var text = btn.getAttribute('data-copy');
+            var label = btn.textContent;
+            var done = function () {
+                btn.textContent = 'คัดลอกแล้ว ✓';
+                setTimeout(function () { btn.textContent = label; }, 1600);
+            };
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(done);
+            } else {
+                var t = document.createElement('textarea');
+                t.value = text;
+                document.body.appendChild(t);
+                t.select();
+                document.execCommand('copy');
+                t.remove();
+                done();
+            }
+        });
+    });
 </script>
 {/block}

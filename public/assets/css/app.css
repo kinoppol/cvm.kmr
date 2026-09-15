@@ -570,6 +570,26 @@ dialog.modal .modal-foot {
 .list-when { flex: none; font: 400 12px/1 var(--mono); color: var(--ink3); width: 84px; text-align: right; }
 .list-id { flex: none; width: 96px; font-size: 12px; color: var(--ink3); }
 .list-actions { margin-top: 18px; display: flex; gap: 10px; }
+
+/* รหัส/ลิงก์เข้าร่วมรายวิชา */
+.join-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-top: 18px; }
+.join-card .card-sub { margin-bottom: 0; }
+.join-card-form { display: flex; gap: 8px; flex: 1 1 280px; max-width: 420px; }
+.join-code-input { text-transform: uppercase; letter-spacing: .08em; }
+.join-invite { margin-bottom: 18px; }
+.join-invite-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.join-invite-body { display: grid; grid-template-columns: minmax(180px, auto) 1fr; gap: 18px 28px; margin-top: 8px; }
+.join-invite-body.is-off { opacity: .45; }
+.join-label { font: 500 12px/1 var(--sans); color: var(--ink3); margin-bottom: 8px; }
+.join-code { font-size: 32px; font-weight: 600; letter-spacing: .14em; color: var(--brand); margin-bottom: 8px; }
+.join-invite-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.join-confirm { max-width: 520px; margin: 32px auto 0; }
+.join-confirm dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 14px 0 18px; font-size: 14px; }
+.join-confirm dt { color: var(--ink3); }
+.join-confirm dd { margin: 0; }
+@media (max-width: 640px) {
+    .join-invite-body { grid-template-columns: 1fr; }
+}
 .mini-avatar {
     flex: none; width: 32px; height: 32px; border-radius: 50%;
     background: var(--surface2); border: 1px solid var(--line);

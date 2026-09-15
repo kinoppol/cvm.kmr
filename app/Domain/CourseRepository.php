@@ -17,6 +17,10 @@ final class CourseRepository
      */
     private const CARD_COLORS = ['0E6B60', '2D6E8E', '6B5B95', '8A5A3B', '1F5F3F', '9C6206'];
 
+    /** ตัดตัวที่อ่านสับสนกันออก (O/0, I/1) เพราะครูมักเขียนรหัสบนกระดาน */
+    private const JOIN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    private const JOIN_LENGTH = 6;
+
     public function __construct(private readonly Db $db)
     {
     }
@@ -127,6 +131,62 @@ final class CourseRepository
             'SELECT COUNT(*) FROM {courses} WHERE id = ? AND teacher_id = ?',
             [$courseId, $teacherId]
         ) > 0;
+    }
+
+    /** รหัสเข้าร่วมของรายวิชา — สร้างให้ครั้งแรกที่ครูเปิดดู */
+    public function joinCode(int $courseId): string
+    {
+        $code = (string) $this->db->value('SELECT join_code FROM {courses} WHERE id = ?', [$courseId]);
+
+        return $code !== '' ? $code : $this->regenerateJoinCode($courseId);
+    }
+
+    /** สุ่มรหัสใหม่ — รหัสเดิมและลิงก์เดิมที่แจกไปจะใช้ไม่ได้อีก (นักเรียนที่เข้าร่วมแล้วยังอยู่ครบ) */
+    public function regenerateJoinCode(int $courseId): string
+    {
+        do {
+            $code = '';
+            for ($i = 0; $i < self::JOIN_LENGTH; $i++) {
+                $code .= self::JOIN_ALPHABET[random_int(0, strlen(self::JOIN_ALPHABET) - 1)];
+            }
+        } while ($this->db->int('SELECT COUNT(*) FROM {courses} WHERE join_code = ?', [$code]) > 0);
+
+        $this->db->update('courses', ['join_code' => $code], ['id' => $courseId]);
+
+        return $code;
+    }
+
+    public function setJoinEnabled(int $courseId, bool $enabled): void
+    {
+        $this->db->update('courses', ['join_enabled' => $enabled ? 1 : 0], ['id' => $courseId]);
+    }
+
+    /** @return array<string,mixed>|null รายวิชาจากรหัสเข้าร่วม พร้อมชื่อและสถานศึกษาของครูผู้สอน */
+    public function findByJoinCode(string $code): ?array
+    {
+        if ($code === '') {
+            return null;
+        }
+
+        return $this->db->first(
+            'SELECT c.*, cr.name AS classroom_name, u.full_name AS teacher_name, u.institution_id AS teacher_institution_id
+             FROM {courses} c
+             LEFT JOIN {classrooms} cr ON cr.id = c.classroom_id
+             LEFT JOIN {users} u ON u.id = c.teacher_id
+             WHERE c.join_code = ?',
+            [$code]
+        );
+    }
+
+    /** แปลงสิ่งที่นักเรียนกรอก (รหัส หรือวางทั้งลิงก์) ให้เป็นรหัสมาตรฐาน */
+    public static function normalizeJoinCode(string $input): string
+    {
+        $input = trim($input);
+        if (preg_match('~/join/([^/?#\s]+)~i', $input, $m)) {
+            $input = $m[1];
+        }
+
+        return strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $input));
     }
 
     public function color(int $index): string

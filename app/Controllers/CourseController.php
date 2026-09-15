@@ -67,6 +67,35 @@ final class CourseController
         return $response->withHeader('Location', Url::to('/courses'))->withStatus(302);
     }
 
+    /** เปิด/ปิดการเข้าร่วมด้วยรหัส หรือสุ่มรหัสใหม่เมื่อรหัสเดิมหลุดไปนอกห้อง */
+    public function joinSettings(Request $request, Response $response, array $args): Response
+    {
+        $user = $request->getAttribute('user');
+        $data = (array) $request->getParsedBody();
+        $back = $response->withHeader('Location', Url::to('/courses/' . (int) $args['id'] . '?tab=students'))->withStatus(302);
+
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ กรุณาลองใหม่อีกครั้ง');
+
+            return $back;
+        }
+
+        $course = $this->requireOwnedCourse($request, (int) $args['id'], (int) $user['id']);
+
+        $do = (string) ($data['do'] ?? '');
+        if ($do === 'regenerate') {
+            $this->courses->regenerateJoinCode((int) $course['id']);
+            Flash::success('สร้างรหัสเข้าร่วมใหม่แล้ว · รหัสและลิงก์เดิมใช้ไม่ได้อีก');
+        } elseif ($do === 'open' || $do === 'close') {
+            $this->courses->setJoinEnabled((int) $course['id'], $do === 'open');
+            Flash::success($do === 'open'
+                ? 'เปิดให้นักเรียนเข้าร่วมด้วยรหัสแล้ว'
+                : 'ปิดการเข้าร่วมด้วยรหัสแล้ว · นักเรียนที่อยู่ในรายวิชาแล้วยังเรียนได้ตามปกติ');
+        }
+
+        return $back;
+    }
+
     /** ฟอร์มเพิ่มรายวิชาใหม่ หรือแก้ไขรายวิชาเดิมของครูคนนี้ */
     public function edit(Request $request, Response $response, array $args): Response
     {
@@ -194,7 +223,11 @@ final class CourseController
         $data += match ($tab) {
             'units'    => ['units' => $this->decorateUnits($this->units->forCourse($course['id']))],
             'quizzes'  => ['quizzes' => $this->quizzes->forCourse((int) $course['id'])],
-            'students' => ['students' => $this->enrollments->studentsInCourse($course['id'])],
+            'students' => [
+                'students' => $this->enrollments->studentsInCourse($course['id']),
+                'joinCode' => $code = $this->courses->joinCode((int) $course['id']),
+                'joinUrl' => (string) $request->getUri()->withPath(Url::to('/join/' . $code))->withQuery('')->withFragment(''),
+            ],
             'scores'   => $this->scoreBoard($course['id']),
             default    => [],
         };

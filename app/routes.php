@@ -19,6 +19,7 @@ use App\Controllers\AuthController;
 use App\Controllers\CourseController;
 use App\Controllers\DashboardController;
 use App\Controllers\ImpersonationController;
+use App\Controllers\JoinController;
 use App\Controllers\LandingController;
 use App\Controllers\BoardController;
 use App\Controllers\UnitController;
@@ -84,6 +85,8 @@ return static function (App $app): void {
             $t->get('/{id:[0-9]+}/edit', [CourseController::class, 'edit']);
             $t->post('/{id:[0-9]+}', [CourseController::class, 'save']);
             $t->post('/{id:[0-9]+}/archive', [CourseController::class, 'archive']);
+            // รหัส/ลิงก์ให้นักเรียนเข้าร่วมรายวิชาเอง — เปิด ปิด หรือสุ่มรหัสใหม่
+            $t->post('/{id:[0-9]+}/join', [CourseController::class, 'joinSettings']);
             // ให้ AI ออกแบบรายชื่อหน่วยการเรียนให้ครอบคลุมคำอธิบายรายวิชา (ครูเลือกก่อนบันทึก)
             $t->get('/{courseId:[0-9]+}/units/design', [UnitOutlineController::class, 'form']);
             $t->post('/{courseId:[0-9]+}/units/design', [UnitOutlineController::class, 'generate']);
@@ -152,8 +155,12 @@ return static function (App $app): void {
             $b->post('/{groupId:[0-9]+}/topics/{topicId:[0-9]+}/replies', [BoardController::class, 'saveReply']);
         })->add(new RoleMiddleware(Roles::TEACHING));
 
+        // ลิงก์เข้าร่วมรายวิชาที่ครูแจก — ไม่จำกัดบทบาทที่นี่ เพื่อบอกครูที่เผลอเปิดลิงก์ได้ว่าลิงก์นี้สำหรับนักเรียน
+        $group->get('/join/{code}', [JoinController::class, 'show'])->setName('join');
+
         $group->group('/learn', function (RouteCollectorProxy $s): void {
             $s->get('', [StudentController::class, 'courses'])->setName('learn');
+            $s->post('/join', [JoinController::class, 'join']);
             $s->get('/{courseId:[0-9]+}', [StudentController::class, 'course']);
             $s->get('/units/{id:[0-9]+}', [StudentController::class, 'unit']);
             $s->post('/quizzes/{quizId:[0-9]+}/start', [StudentController::class, 'startQuiz']);

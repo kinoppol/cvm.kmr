@@ -45,6 +45,16 @@ final class EnrollmentRepository
         ) > 0;
     }
 
+    /** ลงทะเบียนนักเรียนเข้ารายวิชา — ถ้าเคยถอนไปแล้วให้กลับมาเรียนต่อได้ */
+    public function enroll(int $courseId, int $studentId): void
+    {
+        $this->db->run(
+            'INSERT INTO {enrollments} (course_id, student_id, status) VALUES (?, ?, \'active\')
+             ON DUPLICATE KEY UPDATE status = IF(status = \'dropped\', \'active\', status)',
+            [$courseId, $studentId]
+        );
+    }
+
     /** @return list<array<string,mixed>> รายวิชาที่นักเรียนคนนี้เรียนอยู่ */
     public function coursesForStudent(int $studentId): array
     {

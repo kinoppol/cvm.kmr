@@ -23,7 +23,15 @@ final class AuthMiddleware implements MiddlewareInterface
         $user = $this->auth->user();
 
         if ($user === null) {
-            Flash::warning('กรุณาเข้าสู่ระบบก่อนใช้งาน');
+            // จำหน้าที่ตั้งใจจะเปิดไว้ (เช่นลิงก์เข้าร่วมรายวิชาที่ครูแจก) แล้วพากลับมาหลังเข้าสู่ระบบ
+            if ($request->getMethod() === 'GET') {
+                $uri = $request->getUri();
+                $_SESSION['intended'] = $uri->getPath() . ($uri->getQuery() !== '' ? '?' . $uri->getQuery() : '');
+            }
+
+            Flash::warning(str_contains($request->getUri()->getPath(), '/join/')
+                ? 'เข้าสู่ระบบด้วยบัญชีนักเรียนก่อน แล้วระบบจะพากลับมาเข้าร่วมรายวิชาให้'
+                : 'กรุณาเข้าสู่ระบบก่อนใช้งาน');
 
             return $this->redirectToLogin($request);
         }

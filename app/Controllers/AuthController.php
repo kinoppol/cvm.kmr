@@ -30,7 +30,8 @@ final class AuthController
 
         return $this->view->render($response, 'auth/login', [
             'username' => '',
-            'as' => 'staff',
+            // มาจากลิงก์เข้าร่วมรายวิชา — เปิดแท็บนักเรียนไว้ให้เลย
+            'as' => str_contains((string) ($_SESSION['intended'] ?? ''), '/join/') ? 'student' : 'staff',
             'institution_id' => '',
             'institutions' => $this->institutions->all(),
         ]);
@@ -75,6 +76,13 @@ final class AuthController
         }
 
         $this->auth->log('login');
+
+        // กลับไปหน้าที่ตั้งใจเปิดก่อนถูกพามาเข้าสู่ระบบ · รับเฉพาะ path ภายในระบบ กันการพาออกไปเว็บอื่น
+        $intended = (string) ($_SESSION['intended'] ?? '');
+        unset($_SESSION['intended']);
+        if ($intended !== '' && str_starts_with($intended, '/') && !str_starts_with($intended, '//') && !str_contains($intended, '\\')) {
+            return $response->withHeader('Location', $intended)->withStatus(302);
+        }
 
         return $this->redirect($response, '/dashboard');
     }
