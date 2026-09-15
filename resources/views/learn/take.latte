@@ -60,6 +60,10 @@
     </form>
 </div>
 
+{* หน้านี้ไม่ได้ใช้ layout.latte จึงต้องโหลดกล่องยืนยันกลางเอง ไม่งั้น rvcConfirm ไม่มีและกดส่งคำตอบไม่ได้ *}
+{include '../_partials/confirm.latte'}
+<script src="{$base}/assets/js/ui.js"></script>
+
 <script>
 (function () {
     var root = document.getElementById('take');
@@ -114,7 +118,9 @@
     document.getElementById('prevBtn').addEventListener('click', function () { if (cur > 0) { cur--; render(); } });
     document.getElementById('nextBtn').addEventListener('click', function () {
         if (cur < total - 1) { cur++; render(); return; }
-        rvcConfirm({
+        // ถ้าโหลด ui.js ไม่ได้ ให้ใช้กล่องยืนยันของเบราว์เซอร์แทน นักเรียนจะได้ส่งคำตอบได้เสมอ
+        var ask = window.rvcConfirm || function (o) { return Promise.resolve(window.confirm(o.message)); };
+        ask({
             title: 'ส่งคำตอบ',
             message: 'ส่งคำตอบและจบการทำแบบทดสอบใช่หรือไม่ · เมื่อส่งแล้วจะแก้ไขคำตอบไม่ได้อีก',
             confirmText: 'ส่งคำตอบ'
