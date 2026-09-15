@@ -32,6 +32,13 @@
         </div>
     {/if}
 
+    {if $pretests}
+        <h2 class="learn-section-title">แบบทดสอบก่อนเรียน</h2>
+        <div class="list">
+            {foreach $pretests as $q}{include '../_partials/quiz-row.latte', q: $q}{/foreach}
+        </div>
+    {/if}
+
     {* เนื้อหา *}
     {if $sections}
         <div style="margin-top:24px">
@@ -54,8 +61,15 @@
                 </div>
             {/foreach}
         </div>
-    {elseif !$unit['key_content'] && !$unit['objectives']}
+    {elseif !$unit['key_content'] && !$unit['objectives'] && !$pretests && !$posttests}
         <div class="empty" style="margin-top:18px"><h3>ครูยังไม่ได้ใส่เนื้อหาในหน่วยนี้</h3></div>
+    {/if}
+
+    {if $posttests}
+        <h2 class="learn-section-title">แบบทดสอบหลังเรียน</h2>
+        <div class="list">
+            {foreach $posttests as $q}{include '../_partials/quiz-row.latte', q: $q}{/foreach}
+        </div>
     {/if}
 </div>
 {/block}

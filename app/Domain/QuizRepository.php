@@ -30,6 +30,36 @@ final class QuizRepository
         );
     }
 
+    /**
+     * แบบทดสอบที่นักเรียนทำได้ — เผยแพร่แล้วและมีข้อสอบอย่างน้อยหนึ่งข้อ พร้อมสถานะการทำของนักเรียนคนนี้
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function publishedForStudent(int $courseId, int $studentId): array
+    {
+        return $this->db->all(
+            'SELECT q.id, q.title, q.kind, q.unit_id, q.time_limit_minutes,
+                    u.title AS unit_title,
+                    (SELECT COUNT(*) FROM {quiz_questions} qq WHERE qq.quiz_id = q.id) AS question_count,
+                    (SELECT a.id FROM {quiz_attempts} a
+                      WHERE a.quiz_id = q.id AND a.student_id = ? AND a.status = \'in_progress\'
+                      ORDER BY a.id DESC LIMIT 1) AS open_attempt_id,
+                    (SELECT COUNT(*) FROM {quiz_attempts} a
+                      WHERE a.quiz_id = q.id AND a.student_id = ? AND a.status <> \'in_progress\') AS done_count,
+                    (SELECT MAX(a.score) FROM {quiz_attempts} a
+                      WHERE a.quiz_id = q.id AND a.student_id = ? AND a.status = \'graded\') AS best_score,
+                    (SELECT a.max_score FROM {quiz_attempts} a
+                      WHERE a.quiz_id = q.id AND a.student_id = ? AND a.status = \'graded\'
+                      ORDER BY a.score DESC LIMIT 1) AS best_max_score
+             FROM {quizzes} q
+             LEFT JOIN {units} u ON u.id = q.unit_id
+             WHERE q.course_id = ? AND q.review_status = \'published\'
+             HAVING question_count > 0
+             ORDER BY u.sort_order IS NULL, u.sort_order, q.kind = \'posttest\', q.created_at',
+            [$studentId, $studentId, $studentId, $studentId, $courseId]
+        );
+    }
+
     /** @return array<string,mixed>|null */
     public function find(int $id): ?array
     {

@@ -57,11 +57,26 @@ final class StudentController
             $this->units->forCourse($courseId),
             static fn (array $u): bool => $u['review_status'] === 'published'
         ));
+        $publishedUnitIds = array_map(static fn (array $u): int => (int) $u['id'], $units);
+
+        // แบบทดสอบของหน่วยที่เผยแพร่แล้วแสดงใต้หน่วยนั้น ส่วนที่ไม่ผูกหน่วย (หรือหน่วยยังไม่เผยแพร่) รวมไว้ท้ายหน้า
+        // เพื่อไม่ให้แบบทดสอบที่ครูเผยแพร่แล้วหายไปจากสายตานักเรียน
+        $quizzesByUnit = [];
+        $otherQuizzes = [];
+        foreach ($this->decorateQuizzes($this->quizzes->publishedForStudent($courseId, (int) $user['id'])) as $q) {
+            if ($q['unit_id'] !== null && in_array((int) $q['unit_id'], $publishedUnitIds, true)) {
+                $quizzesByUnit[(int) $q['unit_id']][] = $q;
+            } else {
+                $otherQuizzes[] = $q;
+            }
+        }
 
         return $this->view->render($response, 'learn/course', [
             'page' => 'learn',
             'course' => $course,
             'units' => $units,
+            'quizzesByUnit' => $quizzesByUnit,
+            'otherQuizzes' => $otherQuizzes,
         ]);
     }
 
@@ -76,11 +91,18 @@ final class StudentController
         $course = $this->db->first('SELECT * FROM {courses} WHERE id = ?', [(int) $unit['course_id']]);
         $sections = $this->units->sectionsFor((int) $unit['id']);
 
+        $quizzes = array_values(array_filter(
+            $this->decorateQuizzes($this->quizzes->publishedForStudent((int) $unit['course_id'], (int) $user['id'])),
+            static fn (array $q): bool => (int) $q['unit_id'] === (int) $unit['id']
+        ));
+
         return $this->view->render($response, 'learn/unit', [
             'page' => 'learn',
             'course' => $course,
             'unit' => $unit,
             'sections' => $sections,
+            'pretests' => array_values(array_filter($quizzes, static fn (array $q): bool => $q['kind'] === 'pretest')),
+            'posttests' => array_values(array_filter($quizzes, static fn (array $q): bool => $q['kind'] !== 'pretest')),
         ]);
     }
 
@@ -219,6 +241,38 @@ final class StudentController
     }
 
     // ---- ภายใน ----
+
+    /**
+     * เติมข้อความที่หน้ารายการแบบทดสอบใช้: ชนิด ปุ่ม และสถานะการทำของนักเรียน
+     *
+     * @param list<array<string,mixed>> $quizzes
+     * @return list<array<string,mixed>>
+     */
+    private function decorateQuizzes(array $quizzes): array
+    {
+        $num = static fn (mixed $v): string => rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.');
+
+        foreach ($quizzes as $i => $q) {
+            $done = (int) $q['done_count'];
+            $meta = [(int) $q['question_count'] . ' ข้อ'];
+            if ($q['time_limit_minutes']) {
+                $meta[] = 'เวลา ' . (int) $q['time_limit_minutes'] . ' นาที';
+            }
+
+            $quizzes[$i]['kind_label'] = $q['kind'] === 'pretest' ? 'ก่อนเรียน' : 'หลังเรียน';
+            $quizzes[$i]['meta'] = implode(' · ', $meta);
+            $quizzes[$i]['action'] = $q['open_attempt_id'] ? 'ทำต่อ' : ($done > 0 ? 'ทำอีกครั้ง' : 'เริ่มทำ');
+            $quizzes[$i]['state'] = match (true) {
+                $q['best_score'] !== null => 'คะแนนสูงสุด ' . $num($q['best_score']) . ' / ' . $num($q['best_max_score']),
+                $done > 0 => 'ส่งแล้ว · รอครูตรวจ',
+                $q['open_attempt_id'] !== null => 'กำลังทำอยู่',
+                default => 'ยังไม่ได้ทำ',
+            };
+            $quizzes[$i]['state_kind'] = $q['best_score'] !== null ? 'ok' : ($done > 0 || $q['open_attempt_id'] ? 'warn' : 'muted');
+        }
+
+        return $quizzes;
+    }
 
     private function requireEnrolled(Request $request, int $courseId, int $studentId): void
     {

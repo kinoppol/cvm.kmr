@@ -23,10 +23,22 @@
                             {if $u['key_content']}<div class="list-meta">{$u['key_content']}</div>{/if}
                         </div>
                     </a>
+                    {foreach $quizzesByUnit[(int) $u['id']] ?? [] as $q}
+                        {include '../_partials/quiz-row.latte', q: $q}
+                    {/foreach}
                 {/foreach}
             </div>
-        {else}
+        {elseif !$otherQuizzes}
             <div class="empty"><h3>ยังไม่มีหน่วยการเรียนที่เผยแพร่</h3></div>
+        {/if}
+
+        {if $otherQuizzes}
+            <h2 class="learn-section-title">แบบทดสอบ</h2>
+            <div class="list">
+                {foreach $otherQuizzes as $q}
+                    {include '../_partials/quiz-row.latte', q: $q}
+                {/foreach}
+            </div>
         {/if}
     </div>
 </div>
