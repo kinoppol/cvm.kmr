@@ -71,6 +71,25 @@ final class StudentAccountRepository
         );
     }
 
+    /**
+     * บัญชีนักเรียนที่ใช้งานอยู่ซึ่งใช้อีเมลนี้ (ไม่สนตัวพิมพ์เล็ก-ใหญ่)
+     * อีเมลของนักเรียนไม่ได้บังคับห้ามซ้ำ จึงคืนเป็นรายการให้ผู้เรียกตัดสินเองเมื่อพบมากกว่าหนึ่งบัญชี
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function activeByEmail(string $email, ?int $institutionId): array
+    {
+        $sql = "SELECT id, username, full_name, email FROM {users}
+                WHERE LOWER(email) = LOWER(?) AND role = 'student' AND status = 'active'";
+        $params = [$email];
+        if ($institutionId !== null) {
+            $sql .= ' AND institution_id = ?';
+            $params[] = $institutionId;
+        }
+
+        return $this->db->all($sql . ' ORDER BY username', $params);
+    }
+
     public function usernameTaken(int $institutionId, string $username, ?int $excludeId = null): bool
     {
         if ($excludeId !== null) {

@@ -148,6 +148,18 @@
                 </div>
             </div>
 
+            <form class="card add-by-email" method="post" action="{$base}/courses/{$course['id']}/students">
+                <input type="hidden" name="_token" value="{$csrf}">
+                <h2>เพิ่มนักเรียนด้วยอีเมล</h2>
+                <div class="card-sub">ใส่อีเมลของนักเรียนที่มีบัญชีในระบบแล้ว ใส่หลายอีเมลได้ คั่นด้วยการขึ้นบรรทัดใหม่ เว้นวรรค หรือจุลภาค</div>
+                <textarea class="input add-by-email-input mono" name="emails" rows="3" required
+                          placeholder="somchai@rvc.ac.th&#10;suda@rvc.ac.th"></textarea>
+                <div class="add-by-email-foot">
+                    <span class="hint">ถ้านักเรียนยังไม่มีอีเมลในบัญชี เพิ่มได้ที่เมนู <a href="{$base}/students">นักเรียน</a> หรือให้เข้าร่วมด้วยรหัสด้านบน</span>
+                    <button class="btn btn-primary" type="submit">เพิ่มเข้ารายวิชา</button>
+                </div>
+            </form>
+
             <div class="list">
                 {foreach $students as $s}
                     <div class="list-row">

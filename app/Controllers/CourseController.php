@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Auth\Auth;
 use App\Domain\CourseRepository;
 use App\Domain\EnrollmentRepository;
 use App\Domain\QuizRepository;
+use App\Domain\StudentAccountRepository;
 use App\Domain\UnitRepository;
 use App\Support\Csrf;
 use App\Support\Db;
@@ -29,6 +31,8 @@ final class CourseController
         private readonly UnitRepository $units,
         private readonly QuizRepository $quizzes,
         private readonly EnrollmentRepository $enrollments,
+        private readonly StudentAccountRepository $studentAccounts,
+        private readonly Auth $auth,
         private readonly Db $db,
     ) {
     }
@@ -94,6 +98,108 @@ final class CourseController
         }
 
         return $back;
+    }
+
+    /**
+     * ครูเพิ่มนักเรียนเข้ารายวิชาโดยระบุอีเมล (ทีละหลายอีเมลได้)
+     * ค้นเฉพาะบัญชีนักเรียนที่มีอยู่แล้วในสถานศึกษาเดียวกัน — ไม่สร้างบัญชีใหม่จากอีเมล
+     */
+    public function addStudents(Request $request, Response $response, array $args): Response
+    {
+        $user = $request->getAttribute('user');
+        $data = (array) $request->getParsedBody();
+        $back = $response->withHeader('Location', Url::to('/courses/' . (int) $args['id'] . '?tab=students'))->withStatus(302);
+
+        if (!Csrf::check($data['_token'] ?? null)) {
+            Flash::error('เซสชันหมดอายุ กรุณาลองใหม่อีกครั้ง');
+
+            return $back;
+        }
+
+        $course = $this->requireOwnedCourse($request, (int) $args['id'], (int) $user['id']);
+        $courseId = (int) $course['id'];
+
+        $emails = [];
+        $invalid = [];
+        foreach (preg_split('/[\s,;]+/', (string) ($data['emails'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $raw) {
+            $email = strtolower(trim($raw, " \t<>\"'"));
+            if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                $invalid[] = $raw;
+                continue;
+            }
+            $emails[$email] = true;
+        }
+        $emails = array_slice(array_keys($emails), 0, 200);
+
+        if ($emails === []) {
+            Flash::error($invalid === []
+                ? 'กรุณากรอกอีเมลของนักเรียนอย่างน้อยหนึ่งอีเมล'
+                : 'รูปแบบอีเมลไม่ถูกต้อง: ' . implode(', ', array_slice($invalid, 0, 10)));
+
+            return $back;
+        }
+
+        // จำกัดอยู่ในสถานศึกษาของครู (ข้ามเมื่อบัญชีครูยังไม่ระบุสถานศึกษา — แบบเดียวกับการเข้าร่วมด้วยรหัส)
+        $institutionId = $this->db->value('SELECT institution_id FROM {users} WHERE id = ?', [(int) $user['id']]);
+        $institutionId = $institutionId === null ? null : (int) $institutionId;
+
+        $added = [];
+        $already = [];
+        $notFound = [];
+        $ambiguous = [];
+        foreach ($emails as $email) {
+            $matches = $this->studentAccounts->activeByEmail($email, $institutionId);
+            if ($matches === []) {
+                $notFound[] = $email;
+                continue;
+            }
+            if (count($matches) > 1) {
+                $ambiguous[] = $email;
+                continue;
+            }
+
+            $student = $matches[0];
+            if ($this->enrollments->isEnrolled($courseId, (int) $student['id'])) {
+                $already[] = $student['full_name'];
+                continue;
+            }
+
+            $this->enrollments->enroll($courseId, (int) $student['id']);
+            if ($this->enrollments->isEnrolled($courseId, (int) $student['id'])) {
+                $added[] = $student['full_name'];
+            } else {
+                $already[] = $student['full_name'] . ' (เรียนจบแล้ว)';
+            }
+        }
+
+        if ($added !== []) {
+            $this->auth->log('course.add_students', 'course#' . $courseId, ['count' => count($added)]);
+            Flash::success(sprintf('เพิ่มนักเรียน %d คนเข้ารายวิชาแล้ว: %s', count($added), $this->nameList($added)));
+        }
+        if ($already !== []) {
+            Flash::warning('อยู่ในรายวิชาแล้ว: ' . $this->nameList($already));
+        }
+        if ($notFound !== []) {
+            Flash::error('ไม่พบบัญชีนักเรียนที่ใช้อีเมลนี้' . ($institutionId !== null ? 'ในสถานศึกษาของคุณ' : '')
+                . ': ' . $this->nameList($notFound) . ' · ตรวจอีเมล หรือเพิ่มอีเมลให้นักเรียนที่เมนูนักเรียนก่อน');
+        }
+        if ($ambiguous !== []) {
+            Flash::error('อีเมลนี้มีนักเรียนใช้ร่วมกันหลายบัญชี จึงไม่ได้เพิ่มให้: ' . $this->nameList($ambiguous)
+                . ' · ให้นักเรียนเข้าร่วมด้วยรหัสแทน');
+        }
+        if ($invalid !== []) {
+            Flash::error('ข้ามอีเมลที่รูปแบบไม่ถูกต้อง: ' . $this->nameList($invalid));
+        }
+
+        return $back;
+    }
+
+    /** @param list<string> $items */
+    private function nameList(array $items): string
+    {
+        $shown = implode(', ', array_slice($items, 0, 8));
+
+        return count($items) > 8 ? $shown . sprintf(' และอีก %d รายการ', count($items) - 8) : $shown;
     }
 
     /** ฟอร์มเพิ่มรายวิชาใหม่ หรือแก้ไขรายวิชาเดิมของครูคนนี้ */

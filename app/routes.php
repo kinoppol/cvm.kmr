@@ -87,6 +87,8 @@ return static function (App $app): void {
             $t->post('/{id:[0-9]+}/archive', [CourseController::class, 'archive']);
             // รหัส/ลิงก์ให้นักเรียนเข้าร่วมรายวิชาเอง — เปิด ปิด หรือสุ่มรหัสใหม่
             $t->post('/{id:[0-9]+}/join', [CourseController::class, 'joinSettings']);
+            // ครูเพิ่มนักเรียนที่มีบัญชีอยู่แล้วเข้ารายวิชาโดยระบุอีเมล
+            $t->post('/{id:[0-9]+}/students', [CourseController::class, 'addStudents']);
             // ให้ AI ออกแบบรายชื่อหน่วยการเรียนให้ครอบคลุมคำอธิบายรายวิชา (ครูเลือกก่อนบันทึก)
             $t->get('/{courseId:[0-9]+}/units/design', [UnitOutlineController::class, 'form']);
             $t->post('/{courseId:[0-9]+}/units/design', [UnitOutlineController::class, 'generate']);
